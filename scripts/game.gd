@@ -3,6 +3,8 @@ extends Node
 ## Registered as the "Game" autoload.
 
 signal inventory_changed
+signal money_changed
+signal pieces_changed
 
 const PAWN := 1
 const KNIGHT := 2
@@ -13,6 +15,8 @@ const KING := 6
 
 const PIECE_NAMES := ["", "Pawn", "Knight", "Bishop", "Rook", "Queen", "King"]
 const PIECE_VALUES := [0, 1, 3, 3, 5, 9, 10]
+const START_MONEY := 20
+const START_MOOD := 72.0
 
 ## Item database.
 ## use: contexts where the item can be used directly ("battle", "board").
@@ -29,6 +33,31 @@ const ITEMS := {
 		"desc": "Use it on one of your pieces from the board. That piece gains +4 attack in its next fight."},
 	"ward": {"name": "Ward Charm", "icon": "charm", "color": Color(0.85, 0.7, 0.3), "use": ["board"], "scope": "global",
 		"desc": "Use it on one of your pieces from the board. That piece gains +25 max health in its next fight."},
+	# --- shop goods ----------------------------------------------------------
+	"double_move": {"name": "Double Move Upgrade", "icon": "espresso", "color": Color(0.45, 0.28, 0.16), "use": ["turn"], "scope": "global",
+		"desc": "A double-shot espresso for your entire army. Use it from the Inventory on your turn: you move twice. (Not if your first move gives check.)"},
+	"sniper": {"name": "Sniper Rifle", "icon": "rifle", "color": Color(0.3, 0.34, 0.3), "use": ["board"], "scope": "global",
+		"desc": "One bullet. Use it on one of your pieces, then pick an enemy (not the king) in a clear straight line from it. No labyrinth, no duel - just ash. Uses your turn."},
+	"driveby": {"name": "Drive-By Hotline", "icon": "phone", "color": Color(0.85, 0.3, 0.55), "use": ["turn"], "scope": "global",
+		"desc": "The number of the pieces from the chessboard next door. Use it from the Inventory on your turn: they roll up alongside the board and take out some enemy pieces on the near files. Uses your turn."},
+	"used_car": {"name": "Used Car", "icon": "car", "color": Color(0.35, 0.6, 0.85), "use": ["board"], "scope": "global",
+		"desc": "A pair of keys and a pink slip. Give it to a piece that lost its car so it can move again."},
+	"nitrous": {"name": "Nitrous Bottle", "icon": "nitrous", "color": Color(0.3, 0.55, 0.95), "use": ["race"], "scope": "global",
+		"desc": "A blue bottle of go-faster. In a pink slip race, tap NOS for a burst of speed."},
+	"roses": {"name": "Bouquet of Roses", "icon": "roses", "color": Color(0.85, 0.15, 0.25), "use": ["board"], "scope": "global",
+		"desc": "Give it to one of your pieces to lift its mood. Doesn't use your turn."},
+	"headlamp": {"name": "Headlamp", "icon": "headlamp", "color": Color(0.95, 0.85, 0.4), "use": [], "scope": "global", "unique": true,
+		"desc": "Strapped to your forehead at all times. The labyrinths of gloomy pieces are much less dark."},
+	"booster": {"name": "Booster Pack", "icon": "booster", "color": Color(0.6, 0.3, 0.8), "use": [], "scope": "global", "instant": true,
+		"desc": "Two random cards for the children's card game in the graveyard. Opened the moment you buy it."},
+	"beyblade": {"name": "Spare Beyblade", "icon": "beyblade", "color": Color(0.3, 0.6, 0.9), "use": [], "scope": "global",
+		"desc": "If your Beyblade volume control snaps off, this replaces it automatically."},
+	"gourd": {"name": "Decorative Gourd", "icon": "gourd", "color": Color(0.9, 0.6, 0.2), "use": [], "scope": "global",
+		"desc": "It is a gourd. It does nothing. It is, however, decorative."},
+	"spoon": {"name": "Commemorative Spoon", "icon": "spoon", "color": Color(0.8, 0.82, 0.86), "use": [], "scope": "global",
+		"desc": "Commemorates the Third Annual Chess Club Bake Sale. Nobody remembers the first two."},
+	"pet_rock": {"name": "Pet Rock", "icon": "rock", "color": Color(0.55, 0.52, 0.5), "use": [], "scope": "global",
+		"desc": "Very low maintenance. Very loyal. Refuses to fight, race, date or do odd jobs."},
 	# --- labyrinth items ---------------------------------------------------
 	"matches": {"name": "Tin of Matches", "icon": "matches", "color": Color(0.8, 0.3, 0.2), "scope": "puzzle",
 		"desc": "A dented tin. A few dry matches rattle inside."},
@@ -72,13 +101,46 @@ const ITEMS := {
 		"desc": "A sergeant's tin whistle. It makes a terribly loud shriek."},
 }
 
-var inventory: Dictionary = {}
-var item_order: Array = []
+# Each side keeps its own satchel, wallet and card deck (they only differ in
+# two-player games). `active_side` is the side whose turn it is; the
+# inventory/item_order/money accessors below always refer to that side.
+## What the shop sells, in display order, with prices.
+const SHOP := [
+	["double_move", 40], ["sniper", 35], ["driveby", 55], ["used_car", 20],
+	["nitrous", 12], ["roses", 8], ["headlamp", 15], ["booster", 10],
+	["beyblade", 4], ["potion", 6], ["ether", 5], ["whetstone", 10],
+	["ward", 10], ["gourd", 3], ["spoon", 2], ["pet_rock", 5],
+]
+
+var active_side := 0
+var _invs: Array = [{}, {}]
+var _orders: Array = [[], []]
+var wallets: Array = [0, 0]
+var decks: Array = [[], []] # extra card ids from booster packs
+var graveyard: Array = [[], []] # [{"type": t, "id": pid}, ...] per colour
+var pieces: Dictionary = {} # piece id -> {"mood", "car", "away", "job", "pay", "toppled"}
 var piece_buffs: Dictionary = {}
 var vs_ai := true
 var difficulty := 1
 var counters: Dictionary = {}
 var stats: Dictionary = {}
+var next_piece_id := 200
+
+var inventory: Dictionary:
+	get:
+		return _invs[active_side]
+	set(v):
+		_invs[active_side] = v
+
+var item_order: Array:
+	get:
+		return _orders[active_side]
+	set(v):
+		_orders[active_side] = v
+
+var money: int:
+	get:
+		return int(wallets[active_side])
 
 
 func _ready() -> void:
@@ -87,15 +149,25 @@ func _ready() -> void:
 
 
 func new_game() -> void:
-	inventory.clear()
-	item_order.clear()
+	_invs = [{}, {}]
+	_orders = [[], []]
+	wallets = [START_MONEY, START_MONEY]
+	decks = [[], []]
+	graveyard = [[], []]
+	pieces.clear()
 	piece_buffs.clear()
 	counters.clear()
-	stats = {"puzzles": 0, "fights": 0, "captures": 0, "lost": 0}
-	add_item("potion", 2)
-	add_item("ether", 1)
-	add_item("whetstone", 1)
+	next_piece_id = 200
+	stats = {"puzzles": 0, "fights": 0, "captures": 0, "lost": 0, "earned": 0}
+	for side in 2:
+		active_side = side
+		add_item("potion", 2)
+		add_item("ether", 1)
+		add_item("whetstone", 1)
+	active_side = 0
 	inventory_changed.emit()
+	money_changed.emit()
+	pieces_changed.emit()
 
 
 # --- inventory --------------------------------------------------------------
@@ -177,6 +249,126 @@ func restore(snap: Dictionary) -> void:
 	inventory = snap["inv"].duplicate(true)
 	item_order = snap["order"].duplicate()
 	inventory_changed.emit()
+
+
+# --- money --------------------------------------------------------------------
+
+func add_money(n: int, side: int = -1) -> void:
+	var s := active_side if side < 0 else side
+	wallets[s] = int(wallets[s]) + n
+	if n > 0:
+		stats["earned"] = int(stats.get("earned", 0)) + n
+	money_changed.emit()
+
+
+## Pays from the active side's wallet. Returns false (and spends nothing) if short.
+func spend(n: int) -> bool:
+	if money < n:
+		return false
+	wallets[active_side] = money - n
+	money_changed.emit()
+	return true
+
+
+# --- piece life: moods, cars, odd jobs, knock-overs -----------------------------
+
+func piece(pid: int) -> Dictionary:
+	if not pieces.has(pid):
+		pieces[pid] = {"mood": START_MOOD, "car": true, "away": 0, "job": "", "pay": 0, "toppled": 0}
+	return pieces[pid]
+
+
+func mood_of(pid: int) -> float:
+	return float(piece(pid)["mood"])
+
+
+func set_mood(pid: int, m: float) -> void:
+	piece(pid)["mood"] = clampf(m, 0.0, 100.0)
+	pieces_changed.emit()
+
+
+## Changes a piece's mood and returns the new value.
+func change_mood(pid: int, delta: float) -> float:
+	var p := piece(pid)
+	p["mood"] = clampf(float(p["mood"]) + delta, 0.0, 100.0)
+	pieces_changed.emit()
+	return float(p["mood"])
+
+
+func has_car(pid: int) -> bool:
+	return bool(piece(pid)["car"])
+
+
+func set_car(pid: int, v: bool) -> void:
+	piece(pid)["car"] = v
+	pieces_changed.emit()
+
+
+## Why a piece can't move right now ("" if it can).
+func immobile_reason(pid: int) -> String:
+	var p := piece(pid)
+	if int(p["away"]) > 0:
+		return "is away on a job"
+	if int(p["toppled"]) > 0:
+		return "is knocked over"
+	if not bool(p["car"]):
+		return "has no car"
+	return ""
+
+
+func can_move_piece(pid: int) -> bool:
+	return immobile_reason(pid) == ""
+
+
+static func mood_name(m: float) -> String:
+	if m >= 85.0:
+		return "Elated"
+	if m >= 65.0:
+		return "Content"
+	if m >= 45.0:
+		return "Uneasy"
+	if m >= 25.0:
+		return "Gloomy"
+	if m >= 10.0:
+		return "Despairing"
+	return "Hollow"
+
+
+static func mood_color(m: float) -> Color:
+	if m >= 65.0:
+		return Color(0.95, 0.75, 0.35).lerp(Color(1.0, 0.55, 0.7), clampf((m - 65.0) / 35.0, 0.0, 1.0))
+	if m >= 25.0:
+		return Color(0.55, 0.62, 0.75).lerp(Color(0.95, 0.75, 0.35), (m - 25.0) / 40.0)
+	return Color(0.32, 0.3, 0.42).lerp(Color(0.55, 0.62, 0.75), m / 25.0)
+
+
+## Duel strength from mood: 0.85x when hollow, 1.15x when elated.
+static func mood_mult(m: float) -> float:
+	return 0.85 + 0.3 * clampf(m, 0.0, 100.0) / 100.0
+
+
+## How dark a piece's labyrinth is (0 = normal, 1 = nearly black).
+func gloom_for(m: float) -> float:
+	var g := clampf((70.0 - m) / 62.0, 0.0, 1.0)
+	if has_item("headlamp"):
+		g *= 0.45
+	return g
+
+
+# --- graveyard ----------------------------------------------------------------
+
+func bury(color: int, t: int, pid: int) -> void:
+	graveyard[color].append({"type": t, "id": pid})
+
+
+func new_piece_id() -> int:
+	next_piece_id += 1
+	return next_piece_id
+
+
+func add_cards(ids: Array) -> void:
+	for id in ids:
+		decks[active_side].append(id)
 
 
 # --- piece buffs (from board items) -------------------------------------------

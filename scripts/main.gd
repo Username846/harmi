@@ -34,6 +34,9 @@ func _ready() -> void:
 	add_child(fade)
 	resized.connect(func(): bg.queue_redraw())
 	var dbg := _debug_params()
+	if dbg.has("screen"):
+		_debug_screen(dbg)
+		return
 	if dbg.has("lab") or dbg.has("fight"):
 		_debug_encounter(dbg)
 		return
@@ -78,6 +81,43 @@ func _debug_encounter(dbg: Dictionary) -> void:
 		encounter = AdventureScreen.new()
 		encounter.setup(info)
 	encounter.finished.connect(func(_r):
+		encounter.queue_free()
+		encounter = null
+		show_title())
+	layer.add_child(encounter)
+
+
+const SCREEN_SCRIPTS := {
+	"race": "res://scripts/race/race_screen.gd",
+	"date": "res://scripts/date/date_screen.gd",
+	"cards": "res://scripts/cards/card_duel_screen.gd",
+}
+
+
+## Testing shortcut for the side screens: ?screen=race (or date, cards) with
+## optional &hero=2&foe=4&hmood=72&fmood=30&diff=1&own=1&money=50&items=nitrous,roses
+func _debug_screen(dbg: Dictionary) -> void:
+	Game.new_game()
+	if dbg.has("money"):
+		Game.add_money(int(dbg["money"]))
+	if dbg.has("items"):
+		for id in String(dbg["items"]).split(",", false):
+			Game.add_item(id)
+	var own: bool = dbg.get("own", "0") == "1"
+	var info := {
+		"kind": dbg["screen"], "difficulty": int(dbg.get("diff", "1")),
+		"hero_type": int(dbg.get("hero", "2")), "hero_color": 0, "hero_id": 1, "hero_mood": float(dbg.get("hmood", "72")),
+		"foe_type": int(dbg.get("foe", "4")), "foe_color": 1, "foe_id": 56, "foe_mood": float(dbg.get("fmood", "72")),
+		"date_type": int(dbg.get("foe", "4")), "date_color": 0 if own else 1, "date_id": 0 if own else 56,
+		"date_mood": float(dbg.get("fmood", "40")), "own": own,
+		"player_color": 0, "wager_type": int(dbg.get("foe", "4")),
+	}
+	Game.set_mood(info["date_id"], info["date_mood"])
+	var script: GDScript = load(SCREEN_SCRIPTS.get(dbg["screen"], SCREEN_SCRIPTS["race"]))
+	encounter = script.new()
+	encounter.call("setup", info)
+	encounter.connect("finished", func(r: String):
+		print("screen finished: ", r)
 		encounter.queue_free()
 		encounter = null
 		show_title())

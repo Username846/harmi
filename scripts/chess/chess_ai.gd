@@ -1,0 +1,237 @@
+class_name ChessAI
+extends RefCounted
+## Small alpha-beta searcher with piece-square tables and a quiescence search.
+
+const VALUES := [0, 100, 320, 330, 500, 900, 0]
+const MATE := 100000
+
+# Piece-square tables from White's point of view, index = rank * 8 + file.
+const PST_PAWN := [
+	0, 0, 0, 0, 0, 0, 0, 0,
+	5, 10, 10, -20, -20, 10, 10, 5,
+	5, -5, -10, 0, 0, -10, -5, 5,
+	0, 0, 0, 20, 20, 0, 0, 0,
+	5, 5, 10, 25, 25, 10, 5, 5,
+	10, 10, 20, 30, 30, 20, 10, 10,
+	50, 50, 50, 50, 50, 50, 50, 50,
+	0, 0, 0, 0, 0, 0, 0, 0]
+const PST_KNIGHT := [
+	-50, -40, -30, -30, -30, -30, -40, -50,
+	-40, -20, 0, 5, 5, 0, -20, -40,
+	-30, 5, 10, 15, 15, 10, 5, -30,
+	-30, 0, 15, 20, 20, 15, 0, -30,
+	-30, 5, 15, 20, 20, 15, 5, -30,
+	-30, 0, 10, 15, 15, 10, 0, -30,
+	-40, -20, 0, 0, 0, 0, -20, -40,
+	-50, -40, -30, -30, -30, -30, -40, -50]
+const PST_BISHOP := [
+	-20, -10, -10, -10, -10, -10, -10, -20,
+	-10, 5, 0, 0, 0, 0, 5, -10,
+	-10, 10, 10, 10, 10, 10, 10, -10,
+	-10, 0, 10, 10, 10, 10, 0, -10,
+	-10, 5, 5, 10, 10, 5, 5, -10,
+	-10, 0, 5, 10, 10, 5, 0, -10,
+	-10, 0, 0, 0, 0, 0, 0, -10,
+	-20, -10, -10, -10, -10, -10, -10, -20]
+const PST_ROOK := [
+	0, 0, 0, 5, 5, 0, 0, 0,
+	-5, 0, 0, 0, 0, 0, 0, -5,
+	-5, 0, 0, 0, 0, 0, 0, -5,
+	-5, 0, 0, 0, 0, 0, 0, -5,
+	-5, 0, 0, 0, 0, 0, 0, -5,
+	-5, 0, 0, 0, 0, 0, 0, -5,
+	5, 10, 10, 10, 10, 10, 10, 5,
+	0, 0, 0, 0, 0, 0, 0, 0]
+const PST_QUEEN := [
+	-20, -10, -10, -5, -5, -10, -10, -20,
+	-10, 0, 5, 0, 0, 0, 0, -10,
+	-10, 5, 5, 5, 5, 5, 0, -10,
+	0, 0, 5, 5, 5, 5, 0, -5,
+	-5, 0, 5, 5, 5, 5, 0, -5,
+	-10, 0, 5, 5, 5, 5, 0, -10,
+	-10, 0, 0, 0, 0, 0, 0, -10,
+	-20, -10, -10, -5, -5, -10, -10, -20]
+const PST_KING := [
+	20, 30, 10, 0, 0, 10, 30, 20,
+	20, 20, 0, 0, 0, 0, 20, 20,
+	-10, -20, -20, -20, -20, -20, -20, -10,
+	-20, -30, -30, -40, -40, -30, -30, -20,
+	-30, -40, -40, -50, -50, -40, -40, -30,
+	-30, -40, -40, -50, -50, -40, -40, -30,
+	-30, -40, -40, -50, -50, -40, -40, -30,
+	-30, -40, -40, -50, -50, -40, -40, -30]
+
+var nodes := 0
+var deadline := 0
+var aborted := false
+
+
+static func pst(t: int, idx: int) -> int:
+	match t:
+		1: return PST_PAWN[idx]
+		2: return PST_KNIGHT[idx]
+		3: return PST_BISHOP[idx]
+		4: return PST_ROOK[idx]
+		5: return PST_QUEEN[idx]
+		6: return PST_KING[idx]
+	return 0
+
+
+## Static evaluation from the side to move's perspective.
+static func evaluate(b: ChessRules) -> int:
+	var score := 0
+	for s in 64:
+		var code := b.board[s]
+		if code == 0:
+			continue
+		var t := code & 7
+		if (code & 8) == 0:
+			score += VALUES[t] + pst(t, s)
+		else:
+			# mirror rank for black
+			score -= VALUES[t] + pst(t, (7 - (s >> 3)) * 8 + (s & 7))
+	return score if b.side == ChessRules.WHITE else -score
+
+
+static func _order(b: ChessRules, moves: Array) -> void:
+	for m in moves:
+		var v := 0
+		var victim := b.board[m["to"]] & 7
+		if victim != 0:
+			v = 10 * VALUES[victim] - VALUES[b.board[m["from"]] & 7] + 10000
+		elif m["flag"] == ChessRules.FLAG_EP:
+			v = 10000 + 900
+		if m["promo"] != 0:
+			v += VALUES[m["promo"]] + 5000
+		m["score"] = v
+	moves.sort_custom(func(a, c): return a["score"] > c["score"])
+
+
+func _quiesce(b: ChessRules, alpha: int, beta: int, qdepth: int) -> int:
+	nodes += 1
+	if aborted:
+		return 0
+	if (nodes & 127) == 0 and Time.get_ticks_msec() > deadline:
+		aborted = true
+		return 0
+	var stand := evaluate(b)
+	if stand >= beta:
+		return beta
+	if stand > alpha:
+		alpha = stand
+	if qdepth <= 0:
+		return alpha
+	var moves := b.gen_pseudo(true)
+	_order(b, moves)
+	var mover := b.side
+	for m in moves:
+		b.make_move(m)
+		if b.in_check(mover):
+			b.unmake_move()
+			continue
+		var sc := -_quiesce(b, -beta, -alpha, qdepth - 1)
+		b.unmake_move()
+		if sc >= beta:
+			return beta
+		if sc > alpha:
+			alpha = sc
+	return alpha
+
+
+func _search(b: ChessRules, depth: int, alpha: int, beta: int, ply: int) -> int:
+	if aborted:
+		return 0
+	nodes += 1
+	if (nodes & 127) == 0 and Time.get_ticks_msec() > deadline:
+		aborted = true
+		return 0
+	if depth <= 0:
+		return _quiesce(b, alpha, beta, 4)
+	var moves := b.gen_pseudo()
+	_order(b, moves)
+	var mover := b.side
+	var legal := 0
+	for m in moves:
+		b.make_move(m)
+		if b.in_check(mover):
+			b.unmake_move()
+			continue
+		legal += 1
+		var sc := -_search(b, depth - 1, -beta, -alpha, ply + 1)
+		b.unmake_move()
+		if sc >= beta:
+			return beta
+		if sc > alpha:
+			alpha = sc
+	if legal == 0:
+		if b.in_check(mover):
+			return -MATE + ply
+		return 0
+	return alpha
+
+
+## Picks a move for the side to move. difficulty: 0 easy, 1 normal, 2 hard.
+func choose_move(src: ChessRules, difficulty: int) -> Dictionary:
+	var b := src.copy()
+	var moves := b.legal_moves()
+	if moves.is_empty():
+		return {}
+	nodes = 0
+	aborted = false
+	var max_depth := 1
+	var budget := 400
+	var noise := 0
+	match difficulty:
+		0:
+			max_depth = 1
+			noise = 90
+		1:
+			max_depth = 2
+			budget = 900
+			noise = 12
+		_:
+			max_depth = 4
+			budget = 1400
+			noise = 0
+	deadline = Time.get_ticks_msec() + budget
+	_order(b, moves)
+	var best_scores := {}
+	for depth in range(1, max_depth + 1):
+		var scores := {}
+		var alpha := -MATE * 2
+		var completed := true
+		for i in moves.size():
+			var m: Dictionary = moves[i]
+			b.make_move(m)
+			var sc := -_search(b, depth - 1, -MATE * 2, -alpha + noise + 1, 1)
+			b.unmake_move()
+			if aborted:
+				completed = false
+				break
+			scores[i] = sc
+			if sc > alpha:
+				alpha = sc
+		if not completed:
+			break
+		best_scores = scores
+		# search best moves first next iteration
+		var idx: Array = scores.keys()
+		idx.sort_custom(func(x, y): return scores[x] > scores[y])
+		var reordered: Array = []
+		var rescored := {}
+		for j in idx.size():
+			reordered.append(moves[idx[j]])
+			rescored[j] = scores[idx[j]]
+		moves = reordered
+		best_scores = rescored
+	# pick among moves within the noise window of the best
+	var best := -MATE * 3
+	for i in best_scores:
+		best = maxi(best, best_scores[i])
+	var candidates: Array = []
+	for i in best_scores:
+		if best_scores[i] >= best - noise:
+			candidates.append(moves[i])
+	if candidates.is_empty():
+		return moves[0]
+	return candidates[randi() % candidates.size()]

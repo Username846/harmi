@@ -142,10 +142,12 @@ func _draw_scene() -> void:
 			var r := Rect2(Vector2(x, y), Vector2(tw, th))
 			_tombs.append(r)
 			_draw_tomb(r, int(graves[i]["type"]), i == selected)
-	# mist
-	for i in 6:
-		var mx := fmod(_t * 12.0 + i * s.x / 5.0, s.x + 160) - 80
-		scene.draw_circle(Vector2(mx, ground_y + 6 + (i % 2) * 8), 46, Color(0.75, 0.75, 0.85, 0.06))
+	# low mist drifting over the graves
+	for i in 5:
+		var mx := fmod(_t * 10.0 + i * s.x / 4.0, s.x + 200.0) - 200.0
+		var my := ground_y - 4.0 + (i % 3) * 7.0
+		scene.draw_rect(Rect2(Vector2(mx, my), Vector2(200, 5)), Color(0.75, 0.75, 0.85, 0.05))
+		scene.draw_rect(Rect2(Vector2(mx + 30, my + 3), Vector2(130, 4)), Color(0.75, 0.75, 0.85, 0.05))
 	YugiArt.draw(scene, yrect, _t, "smug")
 	# speech bubble
 	var fs := 15

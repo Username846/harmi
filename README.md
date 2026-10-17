@@ -13,6 +13,19 @@ Every time you capture, the board falls away and you enter the captured piece.
 
 Finish the encounter and you return to the board, where the captured piece **crumbles into ash**.
 
+Off the board, your pieces have lives of their own:
+
+* **Odd Jobs and Really Odd Jobs** earn money, and the **Shop** sells useful goods (a Double Move
+  Upgrade, a Sniper Rifle, a Drive-By Hotline for the pieces on the chessboard next door, used cars,
+  nitrous...) and some less useful ones (a decorative gourd).
+* **Pink Slip Races**: challenge an enemy piece to a drag race. The loser loses its car and can't move.
+* **Moods**: pieces get gloomy watching comrades lose their cars or turn to ash. Gloomy pieces fight
+  worse, and the gloomier an enemy, the **darker its labyrinth**. Take pieces on **dates** to cheer them up.
+* **The Graveyard**: fallen pieces rest here. Beat **Yugi Moto** in a children's card game to bring one back.
+* **Music**: the volume control is a **Beyblade**. Pull its rip cord harder and the bassline (a top
+  bouncing down an oak staircase) plays louder and longer. Pull too hard and it snaps off and crashes
+  into the board, knocking pieces around and over.
+
 ## Play it from GitHub (GitHub Pages)
 
 The repository already contains a ready-to-serve web build in [`docs/`](docs/), so the game can be
@@ -37,19 +50,25 @@ cross-origin isolation headers or service-worker tricks.
 
 | | |
 |---|---|
-| **Select a piece** | Tap or click it. Its **action menu** opens: *Move*, *Inspect*, *Use Item*, *Cancel*. |
+| **Select a piece** | Tap or click it. Its **action menu** opens: *Move*, *Odd Jobs*, *Pink Slip Race*, *Date*, *Use Item*, *Inspect*, *Cancel*. Enemy pieces can be inspected or asked on a date. |
 | **Move** | Gold dots are moves; red squares are captures. Tap one. Tap elsewhere to cancel. |
-| **Inspect** | Shows how the piece moves, its duel stats, any blessings and, for enemies, what waits inside it. |
-| **Use Item** | Board items bless one of your pieces for its next duel (Whetstone: +4 attack, Ward Charm: +25 health). |
-| **Inventory** | Everything you carry. Labyrinth items vanish when you leave that labyrinth; potions, charms and ash stay. |
-| **Labyrinths** | Choose a command, then tap the picture. To use an item: tap **USE**, tap the item in your satchel, then tap the target (or another item to combine them). Tap doorways and arrows to travel; the minimap shows where you've been. **Hint** helps when you're stuck. |
+| **Odd Jobs** | An odd job keeps the piece away for your next turn and pays a little. A really odd job keeps it away for two turns, pays more, and things happen. Uses your turn. |
+| **Pink Slip Race** | Pick an enemy piece (pink squares), then win the drag race: launch on green, shift in the green band, hit NOS if you have it. The loser can't move without a car. Uses your turn. |
+| **Date** | Choose a venue and say the right things. Restores the piece's mood. Uses your turn. |
+| **Use Item** | Whetstone (+4 attack next fight), Ward Charm (+25 health next fight), Roses (+mood), Used Car (moves again), Sniper Rifle (shoot an enemy in a clear straight line; uses your turn). |
+| **Inventory** | Everything you carry. On your turn, use the Double Move Upgrade and the Drive-By Hotline from here. Labyrinth items vanish when you leave that labyrinth. |
+| **Shop** | Spend the money from odd jobs, captures and pink slips. |
+| **Graveyard** | Choose a fallen piece and duel Yugi Moto for it. Uses your turn. |
+| **Beyblade** | The volume control (top right). Drag the rip cord out and let go. Too hard, and it crashes into the board. Knocked-over pieces lose their next turn. |
+| **Labyrinths** | Choose a command, then tap the picture. To use an item: tap **USE**, tap the item in your satchel, then tap the target (or another item to combine them). Tap doorways and arrows to travel; the minimap shows where you've been. **Hint** helps when you're stuck. In a gloomy piece's labyrinth your light follows the pointer or your last tap. |
 | **Duels** | *Strike*, *Skills* (cost mana), *Guard* (halves the next hit and restores mana), *Items* (Health Draught, Mana Tincture, Pinch of Ash to blind the foe). If you lose you can try again with your items restored. |
 | **Retreat** | Available in every labyrinth and ordinary duel. It calls the capture off and you choose another move. |
 | **Winning** | Checkmate the enemy king, then defeat it in a final duel. |
 
-Modes: **vs Computer** (Easy / Normal / Hard) or **Two Players** on the same device.
+Modes: **vs Computer** (Easy / Normal / Hard) or **Two Players** on the same device (each side has its own wallet, satchel and card deck).
 The board uses standard chess rules: castling, en passant, promotion, check, checkmate, stalemate,
-the fifty-move rule, threefold repetition and insufficient material.
+the fifty-move rule, threefold repetition and insufficient material. Off-board actions (jobs, races,
+dates, shots, card duels) use up your turn instead of a move; you can't take them while in check.
 
 ## The labyrinths
 
@@ -71,16 +90,22 @@ export_presets.cfg       "Web" preset (no threads) exporting to docs/index.html
 scenes/main.tscn         Entry scene
 scripts/
   main.gd                Scene manager: title -> board <-> encounters, transitions
-  game.gd                Autoload: inventory, item database, encounter assignment
-  chess/                 Rules (chess_rules.gd), AI, elongated piece art, board view, ash effect, board screen
+  game.gd                Autoload: per-side satchels and wallets, item and shop database, piece moods, graveyard
+  audio/music.gd         Autoload: the Beyblade-powered music
+  chess/                 Rules, AI, elongated piece art, board view and effects, board screen
+  life/                  Odd jobs
   adventure/             Picture-in-a-box engine, room & object art, labs/ (one script per labyrinth)
   battle/                Duel stats, arena drawing, duel screen
-  title/, ui/            Title screen, theme, modals, inventory, item icons, help
-tests/                   Headless tests (perft, labyrinth walkthroughs, AI timing)
+  race/                  Pink slip drag race
+  date/                  Dates
+  cards/                 Yugi Moto's children's card game
+  title/, ui/            Title screen, theme, modals, inventory, shop, graveyard, Beyblade widget, item icons, help
+assets/audio/            The bassline and two sound effects (rendered by tools/gen_audio.py)
+tests/                   Headless tests (perft, labyrinths, board actions, AI timing, minigames)
 docs/                    Exported web build served by GitHub Pages
 ```
 
-All art is drawn procedurally in code; the project has no image or audio assets.
+All art is drawn procedurally in code. The music is synthesized by `tools/gen_audio.py` (Python + numpy).
 
 ## Development
 
@@ -88,9 +113,16 @@ Open the folder in **Godot 4.7.2** and press Play. Run the tests from a terminal
 
 ```sh
 godot --headless --path . --import                  # first time only
+godot --headless --path . res://tests/check.tscn    # every script compiles
 godot --headless --path . -s tests/test_chess.gd    # move generator perft suite
 godot --headless --path . res://tests/labs.tscn     # solves every labyrinth start to finish
+godot --headless --path . res://tests/board.tscn    # revivals, drive-by, sniper, knock-overs, moods, hand-backs
+godot --headless --path . -s tests/test_race.gd     # drag race balance (about a minute)
+godot --headless --path . res://tests/race_smoke.tscn
+godot --headless --path . -s tests/test_date.gd     # date dialogue data
+godot --headless --path . res://tests/date_flow.tscn
 godot --headless --path . -s tests/test_ai.gd       # AI timing per difficulty
+python3 tools/gen_audio.py                          # re-render the music and sound effects
 ```
 
 To rebuild the web version into `docs/` (requires the 4.7.2 web export templates):
@@ -101,4 +133,6 @@ godot --headless --path . --export-release "Web" docs/index.html
 
 Testing shortcuts for the web build (append to the URL):
 `?lab=trench` (also `well`, `barracks`, `tower`, `undercroft`, `chapel`, `scriptorium`, optionally `&room=<id>`),
-`?fight=5` (foe piece type 1–6, optionally `&hero=2`), and `?fen=<FEN with _ for spaces>` to start from a position.
+`?fight=5` (foe piece type 1–6, optionally `&hero=2`), `&fmood=10` (the foe's mood, for gloomy labyrinths and duels),
+`?screen=race` (also `date`, `cards`, with `&hero=2&foe=4&hmood=72&fmood=30&own=1`),
+`?fen=<FEN with _ for spaces>` to start from a position, and `&money=200&items=sniper,driveby` to start rich.

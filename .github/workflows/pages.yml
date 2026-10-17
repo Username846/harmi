@@ -54,10 +54,16 @@ jobs:
       - name: Import project
         run: ~/godot/godot --headless --path . --import
 
-      - name: Run tests (chess rules perft, every labyrinth solvable)
+      - name: Run tests (rules perft, labyrinths, board actions, minigames)
         run: |
+          ~/godot/godot --headless --path . res://tests/check.tscn
           ~/godot/godot --headless --path . -s tests/test_chess.gd
           ~/godot/godot --headless --path . res://tests/labs.tscn
+          ~/godot/godot --headless --path . res://tests/board.tscn
+          ~/godot/godot --headless --path . -s tests/test_date.gd
+          ~/godot/godot --headless --path . res://tests/date_flow.tscn
+          ~/godot/godot --headless --path . -s tests/test_race.gd
+          ~/godot/godot --headless --path . res://tests/race_smoke.tscn
 
       - name: Export for the web
         run: |

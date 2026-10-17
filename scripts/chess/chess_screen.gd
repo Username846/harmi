@@ -171,7 +171,7 @@ func _relayout() -> void:
 		board.size = Vector2(w - m * 2.0, bh)
 		side_panel.position = Vector2(m, bh + m * 2.0)
 		side_panel.size = Vector2(w - m * 2.0, h - bh - m * 3.0)
-		buttons.columns = 4 if w - m * 2.0 >= 470.0 else 2
+		buttons.columns = 2
 
 
 func _on_resized() -> void:

@@ -1205,9 +1205,7 @@ func _show_graveyard() -> void:
 		return
 	var color := _human_side()
 	var why := ""
-	if not ResourceLoader.exists("res://scripts/cards/card_duel_screen.gd"):
-		why = "Yugi is still sorting his deck. Come back later."
-	elif not (_is_human(rules.side) and state == "idle"):
+	if not (_is_human(rules.side) and state == "idle"):
 		why = "Wait for your turn to duel."
 	elif rules.in_check(rules.side):
 		why = "You're in check - deal with that first."

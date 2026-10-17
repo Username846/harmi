@@ -87,12 +87,9 @@ func setup(i: Dictionary) -> void:
 ## Extra cards the player bought in booster packs (Game.decks[Game.active_side]).
 func _booster_cards() -> Array:
 	var out: Array = []
-	var decks = Game.get("decks")
-	var side = Game.get("active_side")
-	if decks is Array and side != null and int(side) >= 0 and int(side) < decks.size() and decks[int(side)] is Array:
-		for id in decks[int(side)]:
-			if CardData.has(String(id)):
-				out.append(String(id))
+	for id in Game.decks[Game.active_side]:
+		if CardData.has(String(id)):
+			out.append(String(id))
 	return out
 
 

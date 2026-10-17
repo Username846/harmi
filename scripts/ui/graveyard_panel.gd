@@ -146,8 +146,11 @@ func _draw_scene() -> void:
 	for i in 5:
 		var mx := fmod(_t * 10.0 + i * s.x / 4.0, s.x + 200.0) - 200.0
 		var my := ground_y - 4.0 + (i % 3) * 7.0
-		scene.draw_rect(Rect2(Vector2(mx, my), Vector2(200, 5)), Color(0.75, 0.75, 0.85, 0.05))
-		scene.draw_rect(Rect2(Vector2(mx + 30, my + 3), Vector2(130, 4)), Color(0.75, 0.75, 0.85, 0.05))
+		var bounds := Rect2(Vector2.ZERO, s)
+		for band in [Rect2(Vector2(mx, my), Vector2(200, 5)), Rect2(Vector2(mx + 30, my + 3), Vector2(130, 4))]:
+			var clipped: Rect2 = band.intersection(bounds)
+			if clipped.has_area():
+				scene.draw_rect(clipped, Color(0.75, 0.75, 0.85, 0.05))
 	YugiArt.draw(scene, yrect, _t, "smug")
 	# speech bubble
 	var fs := 15
@@ -155,7 +158,11 @@ func _draw_scene() -> void:
 	var bpos := Vector2(maxf(6, yrect.position.x - bw + yw * 0.3), 8)
 	var bubble := Rect2(bpos, Vector2(bw, 30))
 	scene.draw_rect(bubble, Color(0.96, 0.94, 0.88))
-	scene.draw_colored_polygon(PackedVector2Array([bubble.end - Vector2(34, 0), bubble.end - Vector2(18, 0), Vector2(yrect.position.x + yw * 0.4, yrect.position.y + yw * 0.15)]), Color(0.96, 0.94, 0.88))
+	# a short tail pointing down toward Yugi
+	var mouth := YugiArt.mouth_point(yrect)
+	var tail_x := clampf(mouth.x - 60.0, bubble.position.x + 10.0, bubble.end.x - 26.0)
+	var tip := Vector2(tail_x + 8.0, bubble.end.y).lerp(mouth, 0.35)
+	scene.draw_colored_polygon(PackedVector2Array([Vector2(tail_x, bubble.end.y), Vector2(tail_x + 16.0, bubble.end.y), tip]), Color(0.96, 0.94, 0.88))
 	scene.draw_string(font, bpos + Vector2(10, 21), line, HORIZONTAL_ALIGNMENT_LEFT, bw - 16, fs, Color(0.12, 0.08, 0.1))
 
 

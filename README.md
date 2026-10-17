@@ -70,6 +70,16 @@ The board uses standard chess rules: castling, en passant, promotion, check, che
 the fifty-move rule, threefold repetition and insufficient material. Off-board actions (jobs, races,
 dates, shots, card duels) use up your turn instead of a move; you can't take them while in check.
 
+## The children's card game
+
+In the graveyard, Yugi Moto duels you for one fallen piece. Both sides start with 4000 life points and
+three monster zones. Each turn you may summon one monster and cast one spell, then attack: the higher
+ATK destroys the lower and the difference comes off its owner's life points; with an empty field you
+attack directly. Your deck is your chess pieces (Pawns 600 up to the Queen 2500) plus spells like
+Promotion, Checkmate, En Passant and the Fifty-Move Rule. Booster packs from the shop add the Elongated
+Dragon, Beyblade, Drive-By, Sniper Shot, Double Move, Pink Slip and Zugzwang. Watch out when Yugi is
+low on life: he believes in the heart of the cards.
+
 ## The labyrinths
 
 | Piece | Labyrinths |
@@ -121,6 +131,8 @@ godot --headless --path . -s tests/test_race.gd     # drag race balance (about a
 godot --headless --path . res://tests/race_smoke.tscn
 godot --headless --path . -s tests/test_date.gd     # date dialogue data
 godot --headless --path . res://tests/date_flow.tscn
+godot --headless --path . -s tests/test_cards.gd    # card rules and Yugi's win rates
+godot --headless --path . res://tests/card_screen.tscn
 godot --headless --path . -s tests/test_ai.gd       # AI timing per difficulty
 python3 tools/gen_audio.py                          # re-render the music and sound effects
 ```
@@ -135,4 +147,5 @@ Testing shortcuts for the web build (append to the URL):
 `?lab=trench` (also `well`, `barracks`, `tower`, `undercroft`, `chapel`, `scriptorium`, optionally `&room=<id>`),
 `?fight=5` (foe piece type 1–6, optionally `&hero=2`), `&fmood=10` (the foe's mood, for gloomy labyrinths and duels),
 `?screen=race` (also `date`, `cards`, with `&hero=2&foe=4&hmood=72&fmood=30&own=1`),
-`?fen=<FEN with _ for spaces>` to start from a position, and `&money=200&items=sniper,driveby` to start rich.
+`?fen=<FEN with _ for spaces>` to start from a position, `&money=200&items=sniper,driveby` to start rich,
+and `&grave=2,4` to start with a knight and a rook in your graveyard.

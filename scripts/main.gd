@@ -171,6 +171,10 @@ func _start_game(vs_ai: bool, difficulty: int) -> void:
 	if dbg.has("items"):
 		for id in String(dbg["items"]).split(",", false):
 			Game.add_item(id)
+	# &grave=2,4 puts a White knight and rook in the graveyard
+	if dbg.has("grave"):
+		for t in String(dbg["grave"]).split(",", false):
+			Game.bury(0, int(t), Game.new_piece_id())
 	await _fade_to(1.0)
 	if title_screen:
 		title_screen.queue_free()

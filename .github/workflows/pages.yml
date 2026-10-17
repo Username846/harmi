@@ -64,6 +64,8 @@ jobs:
           ~/godot/godot --headless --path . res://tests/date_flow.tscn
           ~/godot/godot --headless --path . -s tests/test_race.gd
           ~/godot/godot --headless --path . res://tests/race_smoke.tscn
+          ~/godot/godot --headless --path . -s tests/test_cards.gd
+          ~/godot/godot --headless --path . res://tests/card_screen.tscn
 
       - name: Export for the web
         run: |

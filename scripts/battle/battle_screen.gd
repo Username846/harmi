@@ -28,8 +28,8 @@ func setup(i: Dictionary) -> void:
 
 
 func _make_fighters() -> void:
-	hero = BattleData.make_fighter(info["hero_type"], info["hero_color"], true, info["foe_type"], Game.buffs_of(info["hero_id"]))
-	foe = BattleData.make_fighter(info["foe_type"], info["foe_color"], false, info["hero_type"])
+	hero = BattleData.make_fighter(info["hero_type"], info["hero_color"], true, info["foe_type"], Game.buffs_of(info["hero_id"]), float(info.get("hero_mood", Game.START_MOOD)))
+	foe = BattleData.make_fighter(info["foe_type"], info["foe_color"], false, info["hero_type"], [], float(info.get("foe_mood", Game.START_MOOD)))
 	if is_final:
 		foe["name"] = Game.piece_title(info["foe_type"], info["foe_color"]) + " (Final)"
 
@@ -40,12 +40,19 @@ func _ready() -> void:
 	arena.hero = hero
 	arena.foe = foe
 	arena.bg_color = BG.get(info["foe_type"], Color(0.2, 0.1, 0.1))
+	arena.gloom = Game.gloom_for(float(info.get("foe_mood", Game.START_MOOD)))
 	arena.reset_display()
 	add_child(arena)
 	cmd_panel = PanelContainer.new()
 	add_child(cmd_panel)
 	var vb := VBoxContainer.new()
 	cmd_panel.add_child(vb)
+	var head := HBoxContainer.new()
+	vb.add_child(head)
+	var title := UI.label("Final Duel" if is_final else "Duel", 22, UI.GOLD)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(title)
+	head.add_child(BeybladeButton.new(48.0))
 	log_box = UI.rich(17)
 	log_box.custom_minimum_size = Vector2(0, 96)
 	log_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -62,6 +69,14 @@ func _ready() -> void:
 		for b in buffs:
 			names.append(Game.item_name(b))
 		_log("Your %s is blessed by: %s." % [hero["name"], ", ".join(names)])
+	var hm: float = hero["mood"]
+	var fm: float = foe["mood"]
+	if hm < 45.0:
+		_log("[color=#8f96b8]Your %s is %s and fights half-heartedly.[/color]" % [hero["name"], Game.mood_name(hm).to_lower()])
+	elif hm >= 85.0:
+		_log("[color=#e0aa4a]Your %s is elated and hits harder![/color]" % hero["name"])
+	if fm < 45.0:
+		_log("[color=#8f96b8]The %s is %s. Its despair hangs over the arena, but saps its strength.[/color]" % [foe["name"], Game.mood_name(fm).to_lower()])
 	_show_main_commands()
 
 

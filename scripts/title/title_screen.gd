@@ -10,6 +10,8 @@ var column: VBoxContainer
 var diff_buttons: Array = []
 var difficulty := 1
 var art: Control
+var beyblade: BeybladeButton
+var music_hint: Label
 
 
 func _ready() -> void:
@@ -42,6 +44,12 @@ func _ready() -> void:
 	_set_diff(1)
 	column.add_child(UI.button("Two Players (same device)", func(): start_requested.emit(false, difficulty), 60))
 	column.add_child(UI.button("How to Play", func(): Help.show(self), 52))
+	beyblade = BeybladeButton.new(70.0)
+	add_child(beyblade)
+	music_hint = UI.label("Music: tap the Beyblade", 14, UI.DIM, HORIZONTAL_ALIGNMENT_RIGHT)
+	music_hint.autowrap_mode = TextServer.AUTOWRAP_OFF
+	music_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(music_hint)
 	resized.connect(_layout)
 	column.minimum_size_changed.connect(_layout_deferred)
 	_layout()
@@ -65,6 +73,11 @@ func _layout() -> void:
 	var avail := size.y - s * 1.95
 	var y := maxf(12.0, (avail - h) * 0.5)
 	column.position = Vector2((size.x - w) * 0.5, y)
+	if beyblade:
+		beyblade.size = beyblade.custom_minimum_size
+		beyblade.position = Vector2(size.x - beyblade.size.x - 12, 10)
+		music_hint.size = Vector2(220, 20)
+		music_hint.position = Vector2(size.x - 232, beyblade.position.y + beyblade.size.y + 2)
 
 
 func _layout_deferred() -> void:

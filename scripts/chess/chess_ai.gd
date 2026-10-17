@@ -171,11 +171,17 @@ func _search(b: ChessRules, depth: int, alpha: int, beta: int, ply: int) -> int:
 
 
 ## Picks a move for the side to move. difficulty: 0 easy, 1 normal, 2 hard.
-func choose_move(src: ChessRules, difficulty: int) -> Dictionary:
+## Pieces on `banned` squares (no car, away on a job, knocked over) stay put,
+## unless nothing else can move.
+func choose_move(src: ChessRules, difficulty: int, banned: Dictionary = {}) -> Dictionary:
 	var b := src.copy()
 	var moves := b.legal_moves()
 	if moves.is_empty():
 		return {}
+	if not banned.is_empty():
+		var free := moves.filter(func(m): return not banned.has(m["from"]))
+		if not free.is_empty():
+			moves = free
 	nodes = 0
 	aborted = false
 	var max_depth := 1

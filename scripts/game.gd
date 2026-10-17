@@ -39,7 +39,7 @@ const ITEMS := {
 	"sniper": {"name": "Sniper Rifle", "icon": "rifle", "color": Color(0.3, 0.34, 0.3), "use": ["board"], "scope": "global",
 		"desc": "One bullet. Use it on one of your pieces, then pick an enemy (not the king) in a clear straight line from it. No labyrinth, no duel - just ash. Uses your turn."},
 	"driveby": {"name": "Drive-By Hotline", "icon": "phone", "color": Color(0.85, 0.3, 0.55), "use": ["turn"], "scope": "global",
-		"desc": "The number of the pieces from the chessboard next door. Use it from the Inventory on your turn: they roll up alongside the board and take out some enemy pieces on the near files. Uses your turn."},
+		"desc": "The number for the pieces from the chessboard next door. Use it from the Inventory on your turn: they cruise along the top or bottom edge of the board and take out up to three enemy pieces (never the king) in the nearest two ranks. Uses your turn."},
 	"used_car": {"name": "Used Car", "icon": "car", "color": Color(0.35, 0.6, 0.85), "use": ["board"], "scope": "global",
 		"desc": "A pair of keys and a pink slip. Give it to a piece that lost its car so it can move again."},
 	"nitrous": {"name": "Nitrous Bottle", "icon": "nitrous", "color": Color(0.3, 0.55, 0.95), "use": ["race"], "scope": "global",

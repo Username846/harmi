@@ -21,6 +21,7 @@ config/icon="res://icon.svg"
 [autoload]
 
 Game="*res://scripts/game.gd"
+Music="*res://scripts/audio/music.gd"
 
 [display]
 

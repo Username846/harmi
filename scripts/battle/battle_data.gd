@@ -50,7 +50,9 @@ const MOVES_DESC := {
 
 ## Builds a fighter. Heroes get a bonus; foes scale with the matchup so a pawn
 ## that takes a queen faces a hard but winnable duel.
-static func make_fighter(t: int, color: int, is_hero: bool, other_t: int, buffs: Array = []) -> Dictionary:
+## mood (0-100) scales attack and magic: a hollow piece hits about 20% softer
+## than an ordinary one, an elated piece a little harder.
+static func make_fighter(t: int, color: int, is_hero: bool, other_t: int, buffs: Array = [], mood: float = Game.START_MOOD) -> Dictionary:
 	var base: Dictionary = STATS[t]
 	var mult_hp := 1.0
 	var mult_atk := 1.0
@@ -63,6 +65,8 @@ static func make_fighter(t: int, color: int, is_hero: bool, other_t: int, buffs:
 		var k := clampf(0.55 + 0.45 * hv / fv, 0.62, 1.1)
 		mult_hp = k
 		mult_atk = k
+	var spirit := Game.mood_mult(mood) / Game.mood_mult(Game.START_MOOD)
+	mult_atk *= spirit
 	var f := {
 		"type": t,
 		"color": color,
@@ -70,11 +74,12 @@ static func make_fighter(t: int, color: int, is_hero: bool, other_t: int, buffs:
 		"max_hp": int(round(base["hp"] * mult_hp)),
 		"max_mp": int(round(base["mp"] * (1.0 if is_hero else maxf(mult_hp, 0.8)))),
 		"atk": int(round(base["atk"] * mult_atk)),
-		"def": int(round(base["def"] * (1.0 if is_hero else mult_atk))),
+		"def": int(round(base["def"] * (spirit if is_hero else mult_atk))),
 		"mag": int(round(base["mag"] * mult_atk)),
 		"skills": SKILLS[t],
 		"guard": false,
 		"blind": false,
+		"mood": mood,
 	}
 	for b in buffs:
 		if b == "whetstone":

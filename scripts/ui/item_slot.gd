@@ -17,7 +17,7 @@ func _init(id: String = "", px: float = 64.0) -> void:
 func _process(delta: float) -> void:
 	_t += delta
 	var icon_id: String = Game.ITEMS.get(item_id, {}).get("icon", "")
-	if icon_id.ends_with("_lit") or icon_id == "ash":
+	if icon_id.ends_with("_lit") or icon_id in ["ash", "espresso", "phone", "headlamp", "beyblade"]:
 		queue_redraw()
 
 

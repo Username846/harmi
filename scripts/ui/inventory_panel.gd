@@ -53,8 +53,11 @@ func _select(id: String) -> void:
 	selected_id = id
 	var usable: bool = Game.ITEMS[id].get("use", []).has(context)
 	var txt := "%s\n%s" % [Game.item_name(id), Game.item_desc(id)]
-	if context == "view" and Game.ITEMS[id].get("use", []).has("board"):
-		txt += "\n(Select one of your pieces and choose Use Item.)"
+	var uses: Array = Game.ITEMS[id].get("use", [])
+	if (context == "view" or context == "turn") and uses.has("board"):
+		txt += "\n(Tap one of your pieces on the board and choose Use Item.)"
+	elif context == "view" and uses.has("turn"):
+		txt += "\n(Open the Inventory on your turn to use it.)"
 	desc.text = txt
 	desc.add_theme_color_override("font_color", UI.TEXT)
 	if use_btn:

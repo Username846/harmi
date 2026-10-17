@@ -8,6 +8,7 @@ var card: Control
 var title_screen: TitleScreen
 var chess: ChessScreen
 var encounter: Control
+var dbg: Dictionary = {}
 
 
 func _ready() -> void:
@@ -33,12 +34,12 @@ func _ready() -> void:
 	fade.modulate.a = 0.0
 	add_child(fade)
 	resized.connect(func(): bg.queue_redraw())
-	var dbg := _debug_params()
+	dbg = _debug_params()
 	if dbg.has("screen"):
-		_debug_screen(dbg)
+		_debug_screen()
 		return
 	if dbg.has("lab") or dbg.has("fight"):
-		_debug_encounter(dbg)
+		_debug_encounter()
 		return
 	if dbg.has("fen"):
 		await _start_game(dbg.get("ai", "1") == "1", 1)
@@ -65,10 +66,10 @@ func _debug_params() -> Dictionary:
 	return out
 
 
-func _debug_encounter(dbg: Dictionary) -> void:
+func _debug_encounter() -> void:
 	Game.new_game()
-	var info := {"hero_type": int(dbg.get("hero", "2")), "hero_color": 0, "hero_id": 1,
-		"foe_type": 1, "foe_color": 1, "foe_id": 24, "kind": "puzzle", "lab": dbg.get("lab", "")}
+	var info := {"hero_type": int(dbg.get("hero", "2")), "hero_color": 0, "hero_id": 1, "hero_mood": float(dbg.get("hmood", "72")),
+		"foe_type": 1, "foe_color": 1, "foe_id": 24, "foe_mood": float(dbg.get("fmood", "72")), "kind": "puzzle", "lab": dbg.get("lab", "")}
 	if dbg.has("fight"):
 		info["kind"] = "final" if int(dbg["fight"]) == 6 else "fight"
 		info["foe_type"] = int(dbg["fight"])
@@ -96,7 +97,7 @@ const SCREEN_SCRIPTS := {
 
 ## Testing shortcut for the side screens: ?screen=race (or date, cards) with
 ## optional &hero=2&foe=4&hmood=72&fmood=30&diff=1&own=1&money=50&items=nitrous,roses
-func _debug_screen(dbg: Dictionary) -> void:
+func _debug_screen() -> void:
 	Game.new_game()
 	if dbg.has("money"):
 		Game.add_money(int(dbg["money"]))
@@ -164,6 +165,12 @@ func _start_game(vs_ai: bool, difficulty: int) -> void:
 	Game.vs_ai = vs_ai
 	Game.difficulty = difficulty
 	Game.new_game()
+	# testing shortcut: &money=200&items=sniper,driveby
+	if dbg.has("money"):
+		Game.add_money(int(dbg["money"]))
+	if dbg.has("items"):
+		for id in String(dbg["items"]).split(",", false):
+			Game.add_item(id)
 	await _fade_to(1.0)
 	if title_screen:
 		title_screen.queue_free()
@@ -206,20 +213,30 @@ func _on_encounter_requested(info: Dictionary) -> void:
 		"final":
 			heading = "The Last Stand of the " + foe
 			sub = "Final Duel"
+		"race":
+			heading = "%s vs %s" % [Game.piece_title(info["hero_type"], info["hero_color"]), foe]
+			sub = "Pink Slip Race"
+		"date":
+			heading = "A Date with the " + foe
+			sub = "Date Night"
+		"cards":
+			heading = "The Graveyard"
+			sub = "It's Time to Duel"
 		_:
 			heading = "The " + foe + " Fights Back"
 			sub = "A Duel"
 	await _show_card(heading, sub)
 
-	if info["kind"] == "puzzle":
-		var adv := AdventureScreen.new()
-		adv.setup(info)
-		encounter = adv
-	else:
-		var bat := BattleScreen.new()
-		bat.setup(info)
-		encounter = bat
-	encounter.finished.connect(_on_encounter_finished)
+	match String(info["kind"]):
+		"puzzle":
+			encounter = AdventureScreen.new()
+		"race", "date", "cards":
+			var script: GDScript = load(SCREEN_SCRIPTS[info["kind"]])
+			encounter = script.new()
+		_:
+			encounter = BattleScreen.new()
+	encounter.call("setup", info)
+	encounter.connect("finished", _on_encounter_finished)
 	layer.add_child(encounter)
 	await _fade_to(0.0, 0.5)
 

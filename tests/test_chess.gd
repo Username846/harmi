@@ -39,5 +39,37 @@ func _init() -> void:
 	if g.status() != "checkmate":
 		ok = false
 		print("FAIL expected checkmate, got ", g.status())
+	# off-the-board actions: passing, sniping, knocking pieces around
+	var x := ChessRules.new()
+	x.setup_start()
+	x.pass_turn()
+	if x.side != ChessRules.BLACK or x.legal_moves().size() != 20:
+		ok = false
+		print("FAIL pass_turn")
+	x.remove_piece(63)
+	if (x.castling & 4) != 0 or x.board[63] != 0:
+		ok = false
+		print("FAIL remove_piece castling")
+	x.relocate(57, 42)
+	if x.board[42] != (ChessRules.KNIGHT | ChessRules.BLACK_BIT) or x.ids[42] != 17 or x.board[57] != 0:
+		ok = false
+		print("FAIL relocate")
+	x.place_piece(57, ChessRules.ROOK | ChessRules.BLACK_BIT, 300)
+	if x.find_id(300) != 57:
+		ok = false
+		print("FAIL place_piece")
+	# the AI leaves banned pieces alone unless nothing else can move
+	var ai := ChessAI.new()
+	var y := ChessRules.new()
+	y.load_fen("4k3/8/8/8/8/8/3P4/R3K3 w - -")
+	var banned := {ChessRules.square_from_name("a1"): true, ChessRules.square_from_name("e1"): true}
+	var mv := ai.choose_move(y, 0, banned)
+	if mv.is_empty() or mv["from"] != ChessRules.square_from_name("d2"):
+		ok = false
+		print("FAIL banned filter ", mv)
+	banned[ChessRules.square_from_name("d2")] = true
+	if ai.choose_move(y, 0, banned).is_empty():
+		ok = false
+		print("FAIL banned fallback")
 	print("ALL OK" if ok else "SOME FAILED")
 	quit(0 if ok else 1)

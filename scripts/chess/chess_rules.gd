@@ -437,6 +437,55 @@ func play(m: Dictionary) -> void:
 	record_position()
 
 
+## Hands the turn to the other side without a chess move (odd jobs, races,
+## dates, sniper shots...). Only call it when the side to move is not in check.
+func pass_turn() -> void:
+	ep = -1
+	halfmove += 1
+	if side == BLACK:
+		fullmove += 1
+	side = 1 - side
+	# a pass breaks any repetition sequence
+	position_counts.clear()
+	record_position()
+
+
+## Takes a piece off the board without a move (sniper, drive-by).
+func remove_piece(s: int) -> void:
+	board[s] = EMPTY
+	ids[s] = -1
+	_lose_castling(s)
+	ep = -1
+
+
+## Moves a piece to another square outside the rules (knocked by a Beyblade).
+func relocate(from: int, to: int) -> void:
+	board[to] = board[from]
+	ids[to] = ids[from]
+	board[from] = EMPTY
+	ids[from] = -1
+	_lose_castling(from)
+	_lose_castling(to)
+	ep = -1
+
+
+## Puts a piece onto an empty square (a piece won back from the graveyard).
+func place_piece(s: int, code: int, pid: int) -> void:
+	board[s] = code
+	ids[s] = pid
+	ep = -1
+
+
+func _lose_castling(s: int) -> void:
+	match s:
+		0: castling &= ~2
+		4: castling &= ~3
+		7: castling &= ~1
+		56: castling &= ~8
+		60: castling &= ~12
+		63: castling &= ~4
+
+
 func insufficient_material() -> bool:
 	var minors := 0
 	var bishops_light := 0

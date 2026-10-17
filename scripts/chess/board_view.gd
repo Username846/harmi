@@ -21,14 +21,22 @@ var hover_sq := -1
 var hidden_ids: Dictionary = {}
 var offsets: Dictionary = {}
 var on_top_id := -1
+var alpha_of: Dictionary = {} # piece id -> opacity while fading in
 var ash_marks: Array = []
 var interactive := true
+var target_color := Color(0.95, 0.25, 0.15)
+var fx: BoardFX
 var _t := 0.0
+var _shake := 0.0
+var _shake_off := Vector2.ZERO
 
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	resized.connect(_fit)
+	fx = BoardFX.new()
+	fx.board = self
+	add_child(fx)
 	_fit()
 
 
@@ -47,7 +55,17 @@ static func needed_height(width: float) -> float:
 
 func _process(delta: float) -> void:
 	_t += delta
+	if _shake > 0.0 or _shake_off != Vector2.ZERO:
+		_shake = maxf(0.0, _shake - delta)
+		position -= _shake_off
+		_shake_off = Vector2(randf_range(-1, 1), randf_range(-1, 1)) * sq * 0.12 * minf(_shake * 4.0, 1.0) if _shake > 0.0 else Vector2.ZERO
+		position += _shake_off
 	queue_redraw()
+
+
+## Rattles the board for a moment (gunshots, a Beyblade landing).
+func shake(amount: float) -> void:
+	_shake = maxf(_shake, amount)
 
 
 func square_rect(s: int) -> Rect2:
@@ -160,12 +178,13 @@ func _draw() -> void:
 	if selected >= 0:
 		draw_rect(square_rect(selected), Color(0.95, 0.75, 0.3, 0.45))
 		draw_rect(square_rect(selected), UI.GOLD, false, 3.0)
-	# capture rings under pieces
+	# capture (or challenge / target) rings under pieces
 	for tsq in targets:
 		if targets[tsq]:
 			var rr := square_rect(tsq)
-			draw_rect(rr, Color(0.85, 0.15, 0.1, 0.22 + 0.08 * sin(_t * 5.0)))
-			draw_rect(rr.grow(-2), Color(0.95, 0.25, 0.15, 0.9), false, 3.0)
+			var tc := target_color
+			draw_rect(rr, Color(tc.r * 0.9, tc.g * 0.6, tc.b * 0.6, 0.22 + 0.08 * sin(_t * 5.0)))
+			draw_rect(rr.grow(-2), Color(tc.r, tc.g, tc.b, 0.9), false, 3.0)
 	# pieces, back rank to front rank
 	var top_piece := {}
 	for r in range(7, -1, -1):
@@ -195,6 +214,11 @@ func _draw_piece_at(s: int, code: int, pid: int) -> void:
 	var b: Vector2 = piece_base(s) + offsets.get(pid, Vector2.ZERO)
 	var t := code & 7
 	var white := (code & 8) == 0
+	var life := Game.piece(pid)
+	if int(life["toppled"]) > 0:
+		_draw_toppled(s, t, white, pid, b)
+		return
+	var away := int(life["away"]) > 0
 	if s == selected:
 		var glow := PieceArt.build(t, white, b.x, b.y, sq)
 		for sh in glow:
@@ -202,11 +226,72 @@ func _draw_piece_at(s: int, code: int, pid: int) -> void:
 				var pts: PackedVector2Array = sh["p"].duplicate()
 				pts.append(pts[0])
 				draw_polyline(pts, Color(1.0, 0.8, 0.35, 0.55 + 0.25 * sin(_t * 5.0)), sq * 0.09, true)
-	PieceArt.draw_piece(self, t, white, b.x, b.y, sq)
+	var alpha: float = alpha_of.get(pid, 1.0) * (0.38 if away else 1.0)
+	PieceArt.draw_piece(self, t, white, b.x, b.y, sq, Color(1, 1, 1, alpha))
+	var top: float = b.y - PieceArt.height(t) * sq
 	if not Game.buffs_of(pid).is_empty():
-		var top: float = b.y - PieceArt.height(t) * sq - sq * 0.12
 		var tw := sin(_t * 4.0 + pid) * 0.3 + 1.0
-		_sparkle(Vector2(b.x + sq * 0.18, top + sq * 0.1), sq * 0.09 * tw)
+		_sparkle(Vector2(b.x + sq * 0.18, top - sq * 0.02), sq * 0.09 * tw)
+	if away:
+		_draw_job_sign(b, int(life["away"]))
+	elif float(life["mood"]) < 30.0:
+		_draw_rain_cloud(Vector2(b.x, top - sq * 0.2), float(life["mood"]), pid)
+	if not bool(life["car"]):
+		_draw_no_car(Vector2(b.x - sq * 0.3, b.y - sq * 0.06))
+
+
+## A piece knocked over by a Beyblade lies on its side, seeing stars.
+func _draw_toppled(s: int, t: int, white: bool, pid: int, b: Vector2) -> void:
+	var sgn := 1.0 if pid % 2 == 0 else -1.0
+	var k := clampf(0.95 / PieceArt.height(t), 0.5, 0.95)
+	var length := PieceArt.height(t) * sq * k
+	var pivot := Vector2(b.x + sgn * length * 0.5, b.y - sq * 0.08)
+	draw_set_transform(pivot, -sgn * PI * 0.5, Vector2(k, k))
+	PieceArt.draw_piece(self, t, white, 0.0, 0.0, sq, Color.WHITE, false)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	var head := Vector2(pivot.x - sgn * length, pivot.y - sq * 0.1)
+	for i in 3:
+		var a := _t * 3.0 + TAU * i / 3.0
+		var p := head + Vector2(cos(a) * sq * 0.16, sin(a) * sq * 0.06 - sq * 0.12)
+		_sparkle(p, sq * 0.05)
+	if s == selected:
+		draw_rect(square_rect(s).grow(-3), Color(1.0, 0.8, 0.35, 0.6), false, 2.0)
+
+
+func _draw_job_sign(b: Vector2, turns: int) -> void:
+	var font := ThemeDB.fallback_font
+	var post_top := b.y - sq * 0.62
+	draw_line(Vector2(b.x + sq * 0.22, b.y - sq * 0.02), Vector2(b.x + sq * 0.22, post_top), Color(0.35, 0.24, 0.15), maxf(2.0, sq * 0.04))
+	var r := Rect2(Vector2(b.x - sq * 0.12, post_top - sq * 0.24), Vector2(sq * 0.68, sq * 0.3))
+	draw_rect(r, Color(0.86, 0.72, 0.45))
+	draw_rect(r, Color(0.35, 0.24, 0.15), false, maxf(1.0, sq * 0.025))
+	var fs := int(maxf(9.0, sq * 0.15))
+	draw_string(font, r.position + Vector2(sq * 0.04, r.size.y * 0.5 + fs * 0.35), "BRB x%d" % turns, HORIZONTAL_ALIGNMENT_LEFT, r.size.x - sq * 0.06, fs, Color(0.2, 0.12, 0.08))
+
+
+func _draw_rain_cloud(c: Vector2, mood: float, pid: int) -> void:
+	var k := sq * 0.1
+	var dark := clampf(1.0 - mood / 30.0, 0.0, 1.0)
+	var col := Color(0.55, 0.57, 0.62).lerp(Color(0.25, 0.25, 0.3), dark)
+	var drift := Vector2(sin(_t * 0.8 + pid) * k * 0.4, 0)
+	for o in [Vector2(-1.2, 0.2), Vector2(0, -0.35), Vector2(1.1, 0.15), Vector2(0.4, 0.35), Vector2(-0.5, 0.4)]:
+		draw_circle(c + drift + o * k, k * 0.95, col)
+	for i in 3:
+		var ph := fmod(_t * 1.6 + i * 0.37 + pid * 0.13, 1.0)
+		var p := c + drift + Vector2((i - 1) * k * 0.9, k * 0.9 + ph * k * 2.6)
+		draw_line(p, p + Vector2(-k * 0.15, k * 0.45), Color(0.55, 0.7, 0.95, 0.85 * (1.0 - ph)), maxf(1.0, sq * 0.02))
+
+
+## Small "no car" badge: a car with a red slash.
+func _draw_no_car(p: Vector2) -> void:
+	var k := sq * 0.07
+	var body := PackedVector2Array([p + Vector2(-2.0, 0.4) * k, p + Vector2(2.0, 0.4) * k, p + Vector2(2.0, -0.4) * k,
+		p + Vector2(1.0, -0.5) * k, p + Vector2(0.6, -1.1) * k, p + Vector2(-0.9, -1.1) * k, p + Vector2(-1.4, -0.5) * k, p + Vector2(-2.0, -0.4) * k])
+	draw_colored_polygon(body, Color(0.35, 0.6, 0.85, 0.9))
+	draw_circle(p + Vector2(-1.1, 0.45) * k, k * 0.42, Color(0.1, 0.1, 0.12))
+	draw_circle(p + Vector2(1.1, 0.45) * k, k * 0.42, Color(0.1, 0.1, 0.12))
+	draw_circle(p + Vector2(0, -0.3) * k, k * 2.3, Color(0.9, 0.15, 0.1), false, maxf(1.5, k * 0.35))
+	draw_line(p + Vector2(-1.6, 1.3) * k, p + Vector2(1.6, -1.9) * k, Color(0.9, 0.15, 0.1), maxf(1.5, k * 0.35))
 
 
 func _sparkle(c: Vector2, r: float) -> void:

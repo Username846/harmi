@@ -148,5 +148,85 @@ static func draw_icon(ci: CanvasItem, id: String, r: Rect2, t: float = 0.0) -> v
 			ci.draw_circle(_p(r, 0.66, 0.58), r.size.x * 0.18, line)
 			ci.draw_circle(_p(r, 0.66, 0.58), r.size.x * 0.16, col)
 			ci.draw_rect(Rect2(_p(r, 0.42, 0.36), r.size * Vector2(0.1, 0.06)), Color(0.08, 0.06, 0.06))
+		"espresso":
+			# a tiny cup with a double shot and a lot of steam
+			_shape(ci, r, [Vector2(0.24, 0.42), Vector2(0.7, 0.42), Vector2(0.66, 0.78), Vector2(0.28, 0.78)], Color(0.95, 0.94, 0.9), line, w)
+			ci.draw_arc(_p(r, 0.74, 0.56), r.size.x * 0.09, -PI * 0.5, PI * 0.5, 10, line, w * 1.4, true)
+			ci.draw_rect(Rect2(_p(r, 0.27, 0.44), r.size * Vector2(0.4, 0.07)), col)
+			_shape(ci, r, [Vector2(0.14, 0.8), Vector2(0.82, 0.8), Vector2(0.76, 0.87), Vector2(0.2, 0.87)], Color(0.85, 0.84, 0.8), line, w)
+			for i in 2:
+				var x := 0.38 + i * 0.16
+				var wob := sin(t * 3.0 + i) * 0.03
+				ci.draw_polyline(PackedVector2Array([_p(r, x, 0.36), _p(r, x + 0.05 + wob, 0.27), _p(r, x - 0.03, 0.18), _p(r, x + 0.03 + wob, 0.1)]), Color(1, 1, 1, 0.6), w, true)
+			ci.draw_string(ThemeDB.fallback_font, _p(r, 0.38, 0.68), "x2", HORIZONTAL_ALIGNMENT_LEFT, -1, int(r.size.y * 0.18), Color(0.3, 0.18, 0.1))
+		"rifle":
+			ci.draw_line(_p(r, 0.08, 0.62), _p(r, 0.92, 0.36), line, w * 3.2, true)
+			ci.draw_line(_p(r, 0.08, 0.62), _p(r, 0.92, 0.36), col, w * 1.6, true)
+			_shape(ci, r, [Vector2(0.06, 0.6), Vector2(0.34, 0.52), Vector2(0.38, 0.62), Vector2(0.12, 0.78)], Color(0.45, 0.3, 0.18), line, w)
+			_shape(ci, r, [Vector2(0.4, 0.4), Vector2(0.62, 0.34), Vector2(0.63, 0.4), Vector2(0.41, 0.46)], Color(0.15, 0.15, 0.17), line, w)
+			ci.draw_line(_p(r, 0.46, 0.55), _p(r, 0.44, 0.66), line, w * 1.5, true)
+			ci.draw_circle(_p(r, 0.62, 0.37), r.size.x * 0.035, Color(0.6, 0.85, 1.0))
+		"phone":
+			_shape(ci, r, [Vector2(0.32, 0.12), Vector2(0.68, 0.12), Vector2(0.7, 0.88), Vector2(0.3, 0.88)], col, line, w)
+			ci.draw_rect(Rect2(_p(r, 0.37, 0.2), r.size * Vector2(0.26, 0.24)), Color(0.55, 0.9, 0.7))
+			for i in 9:
+				ci.draw_circle(_p(r, 0.4 + (i % 3) * 0.1, 0.56 + (i / 3) * 0.09), r.size.x * 0.025, Color(0.15, 0.08, 0.12))
+			ci.draw_line(_p(r, 0.64, 0.12), _p(r, 0.66, 0.02), line, w * 1.5, true)
+			if int(t * 3.0) % 2 == 0:
+				ci.draw_arc(_p(r, 0.72, 0.18), r.size.x * 0.1, -1.2, 0.2, 8, UI.GOLD, w, true)
+				ci.draw_arc(_p(r, 0.72, 0.18), r.size.x * 0.17, -1.2, 0.2, 8, UI.GOLD, w, true)
+		"car":
+			_shape(ci, r, [Vector2(0.08, 0.66), Vector2(0.1, 0.52), Vector2(0.3, 0.48), Vector2(0.4, 0.34), Vector2(0.66, 0.34), Vector2(0.78, 0.48), Vector2(0.92, 0.52), Vector2(0.92, 0.68)], col, line, w)
+			_shape(ci, r, [Vector2(0.42, 0.38), Vector2(0.52, 0.38), Vector2(0.52, 0.48), Vector2(0.36, 0.48)], Color(0.8, 0.92, 1.0), line, w * 0.6)
+			_shape(ci, r, [Vector2(0.56, 0.38), Vector2(0.64, 0.38), Vector2(0.72, 0.48), Vector2(0.56, 0.48)], Color(0.8, 0.92, 1.0), line, w * 0.6)
+			for x in [0.27, 0.73]:
+				ci.draw_circle(_p(r, x, 0.7), r.size.x * 0.1, line)
+				ci.draw_circle(_p(r, x, 0.7), r.size.x * 0.05, Color(0.75, 0.75, 0.8))
+			ci.draw_rect(Rect2(_p(r, 0.6, 0.8), r.size * Vector2(0.3, 0.12)), Color(1.0, 0.6, 0.8))
+		"nitrous":
+			_shape(ci, r, [Vector2(0.34, 0.26), Vector2(0.66, 0.26), Vector2(0.7, 0.34), Vector2(0.7, 0.86), Vector2(0.3, 0.86), Vector2(0.3, 0.34)], col, line, w)
+			ci.draw_rect(Rect2(_p(r, 0.44, 0.12), r.size * Vector2(0.12, 0.14)), Color(0.7, 0.7, 0.75))
+			ci.draw_rect(Rect2(_p(r, 0.3, 0.5), r.size * Vector2(0.4, 0.14)), Color(0.95, 0.95, 1.0))
+			ci.draw_string(ThemeDB.fallback_font, _p(r, 0.33, 0.62), "NOS", HORIZONTAL_ALIGNMENT_LEFT, -1, int(r.size.y * 0.13), Color(0.85, 0.15, 0.1))
+		"roses":
+			ci.draw_line(_p(r, 0.5, 0.88), _p(r, 0.3, 0.42), Color(0.2, 0.55, 0.25), w * 1.4, true)
+			ci.draw_line(_p(r, 0.5, 0.88), _p(r, 0.5, 0.36), Color(0.2, 0.55, 0.25), w * 1.4, true)
+			ci.draw_line(_p(r, 0.5, 0.88), _p(r, 0.7, 0.42), Color(0.2, 0.55, 0.25), w * 1.4, true)
+			for c in [Vector2(0.3, 0.36), Vector2(0.5, 0.28), Vector2(0.7, 0.36)]:
+				ci.draw_circle(_p(r, c.x, c.y), r.size.x * 0.12, col.darkened(0.2))
+				ci.draw_circle(_p(r, c.x, c.y), r.size.x * 0.08, col)
+				ci.draw_arc(_p(r, c.x, c.y), r.size.x * 0.05, 0, PI * 1.5, 8, col.darkened(0.45), w * 0.8, true)
+			_shape(ci, r, [Vector2(0.36, 0.62), Vector2(0.64, 0.62), Vector2(0.56, 0.78), Vector2(0.44, 0.78)], Color(0.95, 0.9, 0.75), line, w * 0.7)
+		"headlamp":
+			ci.draw_arc(_p(r, 0.5, 0.56), r.size.x * 0.3, PI * 0.95, PI * 2.05, 18, Color(0.25, 0.25, 0.3), w * 3.0, true)
+			_shape(ci, r, [Vector2(0.36, 0.3), Vector2(0.64, 0.3), Vector2(0.66, 0.5), Vector2(0.34, 0.5)], Color(0.3, 0.3, 0.35), line, w)
+			ci.draw_circle(_p(r, 0.5, 0.4), r.size.x * 0.08, col)
+			ci.draw_colored_polygon(_poly(r, [Vector2(0.5, 0.4), Vector2(0.95, 0.1), Vector2(0.95, 0.7)]), Color(1.0, 0.95, 0.6, 0.25 + 0.1 * sin(t * 3.0)))
+		"booster":
+			_shape(ci, r, [Vector2(0.24, 0.12), Vector2(0.76, 0.12), Vector2(0.78, 0.88), Vector2(0.22, 0.88)], col, line, w)
+			for i in 6:
+				ci.draw_line(_p(r, 0.24 + i * 0.1, 0.12), _p(r, 0.29 + i * 0.1, 0.17), line, w * 0.6)
+			ci.draw_colored_polygon(_poly(r, [Vector2(0.5, 0.3), Vector2(0.56, 0.45), Vector2(0.72, 0.46), Vector2(0.6, 0.56), Vector2(0.64, 0.72), Vector2(0.5, 0.63), Vector2(0.36, 0.72), Vector2(0.4, 0.56), Vector2(0.28, 0.46), Vector2(0.44, 0.45)]), UI.GOLD)
+		"beyblade":
+			BeybladeArt.draw_top(ci, _p(r, 0.5, 0.45), r.size.x * 0.36, t * 6.0, 0.0, false, 0.3)
+		"gourd":
+			ci.draw_circle(_p(r, 0.5, 0.66), r.size.x * 0.25, col)
+			ci.draw_circle(_p(r, 0.5, 0.38), r.size.x * 0.15, col)
+			for i in 3:
+				ci.draw_arc(_p(r, 0.5, 0.66), r.size.x * (0.08 + i * 0.07), PI * 1.2, PI * 1.8, 8, col.darkened(0.25), w * 0.7, true)
+			ci.draw_line(_p(r, 0.5, 0.24), _p(r, 0.56, 0.12), Color(0.35, 0.5, 0.2), w * 2.0, true)
+			ci.draw_circle(_p(r, 0.62, 0.66), r.size.x * 0.05, Color(1, 1, 1, 0.3))
+		"spoon":
+			ci.draw_line(_p(r, 0.3, 0.86), _p(r, 0.55, 0.42), line, w * 3.2, true)
+			ci.draw_line(_p(r, 0.3, 0.86), _p(r, 0.55, 0.42), col, w * 1.8, true)
+			ci.draw_colored_polygon(PackedVector2Array([_p(r, 0.5, 0.42), _p(r, 0.52, 0.22), _p(r, 0.64, 0.12), _p(r, 0.74, 0.18), _p(r, 0.7, 0.34), _p(r, 0.58, 0.44)]), col)
+			ci.draw_circle(_p(r, 0.33, 0.8), r.size.x * 0.06, UI.GOLD)
+		"rock":
+			_shape(ci, r, [Vector2(0.16, 0.72), Vector2(0.22, 0.48), Vector2(0.42, 0.36), Vector2(0.66, 0.38), Vector2(0.84, 0.56), Vector2(0.8, 0.76), Vector2(0.24, 0.8)], col, line, w)
+			ci.draw_circle(_p(r, 0.42, 0.56), r.size.x * 0.04, Color(1, 1, 1))
+			ci.draw_circle(_p(r, 0.6, 0.56), r.size.x * 0.04, Color(1, 1, 1))
+			ci.draw_circle(_p(r, 0.43, 0.57), r.size.x * 0.02, line)
+			ci.draw_circle(_p(r, 0.61, 0.57), r.size.x * 0.02, line)
+			ci.draw_arc(_p(r, 0.51, 0.64), r.size.x * 0.05, 0.3, PI - 0.3, 6, line, w * 0.7, true)
 		_:
 			ci.draw_circle(r.get_center(), r.size.x * 0.3, col)

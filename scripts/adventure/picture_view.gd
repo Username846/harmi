@@ -15,12 +15,53 @@ var flash_kind := ""
 var flash_id := ""
 var flash_t := 0.0
 var crumble := -1.0
+var gloom := 0.0 # darkness from the captured piece's mood, 0..1
+var light := Vector2(0.5, 0.5) # where the light falls in a gloomy labyrinth (normalized)
+var _light_target := Vector2(0.5, 0.5)
 var _t := 0.0
 var _ash: Array = []
+var _gloom_rect: ColorRect
+var _hud: Control
+
+const GLOOM_SHADER := """
+shader_type canvas_item;
+uniform vec2 light = vec2(0.5, 0.5);
+uniform float aspect = 1.333;
+uniform float radius = 0.4;
+uniform float darkness = 0.0;
+void fragment() {
+	vec2 d = (UV - light) * vec2(aspect, 1.0);
+	float flick = 1.0 + 0.04 * sin(TIME * 7.3) + 0.02 * sin(TIME * 13.1);
+	float a = smoothstep(radius * 0.3 * flick, radius * flick, length(d));
+	COLOR = vec4(0.01, 0.0, 0.03, darkness * (0.2 + 0.8 * a));
+}
+"""
 
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	_gloom_rect = ColorRect.new()
+	_gloom_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var mat := ShaderMaterial.new()
+	var sh := Shader.new()
+	sh.code = GLOOM_SHADER
+	mat.shader = sh
+	_gloom_rect.material = mat
+	add_child(_gloom_rect)
+	# minimap, labels, crumble and the window chrome draw above the gloom
+	_hud = Control.new()
+	_hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hud.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_hud.draw.connect(_draw_hud)
+	add_child(_hud)
+	resized.connect(_place_gloom)
+	_place_gloom()
+
+
+func _place_gloom() -> void:
+	var r := pic_rect()
+	_gloom_rect.position = r.position
+	_gloom_rect.size = r.size
 
 
 func pic_rect() -> Rect2:
@@ -29,6 +70,15 @@ func pic_rect() -> Rect2:
 
 func _process(delta: float) -> void:
 	_t += delta
+	_gloom_rect.visible = gloom > 0.01
+	if _gloom_rect.visible:
+		light = light.lerp(_light_target, minf(1.0, delta * 6.0))
+		var mat := _gloom_rect.material as ShaderMaterial
+		var r := pic_rect()
+		mat.set_shader_parameter("light", light)
+		mat.set_shader_parameter("aspect", r.size.x / maxf(1.0, r.size.y))
+		mat.set_shader_parameter("radius", lerpf(0.95, 0.26, gloom))
+		mat.set_shader_parameter("darkness", gloom * 0.86)
 	if flash_t > 0.0:
 		flash_t -= delta
 	if crumble >= 0.0:
@@ -42,6 +92,7 @@ func _process(delta: float) -> void:
 			a["p"] += a["v"] * delta
 		_ash = _ash.filter(func(a): return a["age"] < a["life"])
 	queue_redraw()
+	_hud.queue_redraw()
 
 
 func _to_norm(p: Vector2) -> Vector2:
@@ -73,6 +124,8 @@ func _hit(p: Vector2) -> Dictionary:
 
 
 func _gui_input(event: InputEvent) -> void:
+	if (event is InputEventMouseMotion or event is InputEventMouseButton) and pic_rect().has_point(event.position):
+		_light_target = _to_norm(event.position)
 	if event is InputEventMouseMotion:
 		var h := _hit(event.position)
 		hover_kind = h.get("kind", "")
@@ -138,6 +191,15 @@ func _draw() -> void:
 		var tw := font.get_string_size(msg, HORIZONTAL_ALIGNMENT_LEFT, -1, 22).x
 		draw_string(font, r.get_center() - Vector2(tw * 0.5, 0), msg, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color(0.6, 0.55, 0.5, 0.8))
 	RoomArt.vignette(self, r, 0.5)
+
+
+func _draw_hud() -> void:
+	if lab == null:
+		return
+	var room: Dictionary = lab.rooms[lab.current]
+	var full := Rect2(Vector2.ZERO, size)
+	var r := pic_rect()
+	var font := ThemeDB.fallback_font
 	_draw_minimap(r)
 	# hover label (mouse users)
 	if hover_kind == "obj" or hover_kind == "exit":
@@ -145,23 +207,23 @@ func _draw() -> void:
 		var fs := 18
 		var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 		var p := Vector2(r.position.x + 10, r.position.y + 10)
-		draw_rect(Rect2(p - Vector2(6, 2), Vector2(w + 12, fs + 10)), Color(0, 0, 0, 0.65))
-		draw_string(font, p + Vector2(0, fs), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 0.9, 0.7))
+		_hud.draw_rect(Rect2(p - Vector2(6, 2), Vector2(w + 12, fs + 10)), Color(0, 0, 0, 0.65))
+		_hud.draw_string(font, p + Vector2(0, fs), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 0.9, 0.7))
 	# crumbling into ash when solved
 	if crumble >= 0.0:
 		var k := clampf(crumble / 2.5, 0.0, 1.0)
-		draw_rect(r, Color(0.35, 0.33, 0.32, k * 0.75))
+		_hud.draw_rect(r, Color(0.35, 0.33, 0.32, k * 0.75))
 		for a in _ash:
 			var age: float = a["age"] / a["life"]
 			var c := Color(1.0, 0.6, 0.25).lerp(Color(0.5, 0.48, 0.47), clampf(age * 2.5, 0, 1))
 			c.a = 1.0 - age
-			draw_rect(Rect2(a["p"], Vector2(3, 3)), c)
-	UI.draw_title_bar(self, full, room["name"], TITLE_H)
+			_hud.draw_rect(Rect2(a["p"], Vector2(3, 3)), c)
+	UI.draw_title_bar(_hud, full, room["name"], TITLE_H)
 	# status strip
 	var sr := Rect2(Vector2(0, size.y - STATUS_H), Vector2(size.x, STATUS_H))
-	draw_rect(sr, Color(0.84, 0.78, 0.66))
-	draw_line(sr.position, Vector2(sr.end.x, sr.position.y), Color(0.42, 0.33, 0.24), 2.0)
-	draw_string(font, Vector2(10, size.y - 9), prompt, HORIZONTAL_ALIGNMENT_LEFT, size.x - 20, 17, Color(0.12, 0.09, 0.08))
+	_hud.draw_rect(sr, Color(0.84, 0.78, 0.66))
+	_hud.draw_line(sr.position, Vector2(sr.end.x, sr.position.y), Color(0.42, 0.33, 0.24), 2.0)
+	_hud.draw_string(font, Vector2(10, size.y - 9), prompt, HORIZONTAL_ALIGNMENT_LEFT, size.x - 20, 17, Color(0.12, 0.09, 0.08))
 
 
 func _draw_minimap(r: Rect2) -> void:
@@ -179,7 +241,7 @@ func _draw_minimap(r: Rect2) -> void:
 	var gw := (maxx - minx + 1) * cell * 1.6
 	var gh := (maxy - miny + 1) * cell * 1.6
 	var origin := Vector2(r.end.x - gw - 10, r.position.y + 10)
-	draw_rect(Rect2(origin - Vector2(6, 6), Vector2(gw + 12, gh + 12)), Color(0, 0, 0, 0.55))
+	_hud.draw_rect(Rect2(origin - Vector2(6, 6), Vector2(gw + 12, gh + 12)), Color(0, 0, 0, 0.55))
 	var known := {}
 	for rid in lab.rooms:
 		var room: Dictionary = lab.rooms[rid]
@@ -202,14 +264,14 @@ func _draw_minimap(r: Rect2) -> void:
 			if ex["hidden"] or not centers.has(ex["to"]):
 				continue
 			var c := Color(0.85, 0.3, 0.2, 0.8) if ex["locked"] else Color(0.8, 0.75, 0.65, 0.7)
-			draw_line(centers[rid], centers[ex["to"]], c, 2.0)
+			_hud.draw_line(centers[rid], centers[ex["to"]], c, 2.0)
 	for rid in known:
 		var c2: Vector2 = centers[rid]
 		var rect := Rect2(c2 - Vector2(cell, cell) * 0.5, Vector2(cell, cell))
 		if rid == lab.current:
-			draw_rect(rect, UI.GOLD)
+			_hud.draw_rect(rect, UI.GOLD)
 		elif lab.rooms[rid]["visited"]:
-			draw_rect(rect, Color(0.6, 0.56, 0.5))
+			_hud.draw_rect(rect, Color(0.6, 0.56, 0.5))
 		else:
-			draw_rect(rect, Color(0.3, 0.28, 0.26, 0.6))
-			draw_rect(rect, Color(0.6, 0.56, 0.5, 0.6), false, 1.0)
+			_hud.draw_rect(rect, Color(0.3, 0.28, 0.26, 0.6))
+			_hud.draw_rect(rect, Color(0.6, 0.56, 0.5, 0.6), false, 1.0)

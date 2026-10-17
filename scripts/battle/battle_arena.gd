@@ -17,6 +17,7 @@ var floaters: Array = []
 var sparks: Array = []
 var _t := 0.0
 var bg_color := Color(0.25, 0.08, 0.1)
+var gloom := 0.0 # how dark the foe's mood makes the arena
 
 
 func _ready() -> void:
@@ -135,6 +136,18 @@ func _draw() -> void:
 		var c: Color = sp["c"]
 		c.a = 1.0 - sp["t"] / sp["life"]
 		draw_circle(sp["p"], sp["r"], c)
+	if gloom > 0.01:
+		# a gloomy foe's arena closes in: dark edges and drifting rain
+		var rings := 8
+		for i in rings:
+			var k := float(i) / rings
+			var inset := minf(size.x, size.y) * 0.5 * (1.0 - k)
+			draw_rect(Rect2(Vector2.ZERO, size), Color(0.01, 0.0, 0.03, gloom * 0.07), false, inset)
+		draw_rect(Rect2(Vector2.ZERO, size), Color(0.02, 0.02, 0.06, gloom * 0.3))
+		for i in int(40 * gloom):
+			var x := fmod(i * 73.1 + _t * 40.0, size.x)
+			var y := fmod(i * 41.7 + _t * 380.0, size.y)
+			draw_line(Vector2(x, y), Vector2(x - 3, y + 12), Color(0.6, 0.7, 0.9, 0.25 * gloom), 1.0)
 	# bars
 	var bw := clampf(size.x * 0.4, 180.0, 340.0)
 	_bars(Rect2(14, 12, bw, 0), foe, disp["foe_hp"], disp["foe_mp"])

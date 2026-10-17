@@ -51,6 +51,7 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	picture = PictureView.new()
 	picture.lab = lab
+	picture.gloom = Game.gloom_for(float(info.get("foe_mood", Game.START_MOOD)))
 	picture.clicked.connect(_on_picture_clicked)
 	add_child(picture)
 
@@ -69,8 +70,12 @@ func _ready() -> void:
 	add_child(panel)
 	var vb := VBoxContainer.new()
 	panel.add_child(vb)
+	var head := HBoxContainer.new()
+	vb.add_child(head)
 	header = UI.label(lab.title, 24, UI.GOLD)
-	vb.add_child(header)
+	header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(header)
+	head.add_child(BeybladeButton.new(52.0))
 	var row := HBoxContainer.new()
 	vb.add_child(row)
 	var hint_btn := UI.button("Hint", _on_hint, 46)
@@ -97,6 +102,10 @@ func _ready() -> void:
 	resized.connect(_relayout)
 	panel.minimum_size_changed.connect(_queue_relayout)
 	_log("[i]%s[/i]" % lab.fmt(lab.intro))
+	if picture.gloom > 0.05:
+		var fm := float(info.get("foe_mood", Game.START_MOOD))
+		var how := "dim" if picture.gloom < 0.35 else ("dark" if picture.gloom < 0.7 else "almost pitch black")
+		_log("[color=#8f96b8]The %s is %s, so its labyrinth is %s. Your light follows your pointer (or your last tap).%s[/color]" % [lab.foe, Game.mood_name(fm).to_lower(), how, " Your headlamp helps." if Game.has_item("headlamp") else ""])
 	_log("[b][color=#e0aa4a]%s[/color][/b]" % lab.rooms[lab.current]["name"])
 	_log(lab.describe_room(lab.current))
 	_log("[color=#a9a39f]Choose a command below, then tap something in the picture. Tap doorways and arrows to move.[/color]")

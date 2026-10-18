@@ -309,6 +309,10 @@ func _upkeep(color: int) -> void:
 
 ## Buries the bomb under one of the empty middle squares (ranks 3-6).
 func _plant_bomb() -> void:
+	bomb_sq = -1
+	# nothing to survive in until the ruins exist
+	if not ResourceLoader.exists("res://scripts/survival/survival_screen.gd"):
+		return
 	var empty: Array = []
 	for s in range(16, 48):
 		if rules.board[s] == 0:

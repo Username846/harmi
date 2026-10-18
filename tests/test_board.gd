@@ -18,7 +18,8 @@ func _ready() -> void:
 	add_child(cs)
 	var r := cs.rules
 	# the hidden bomb sits on an empty middle square and stays quiet for the other checks
-	_check(cs.bomb_sq >= 16 and cs.bomb_sq < 48 and r.board[cs.bomb_sq] == 0, "bomb hidden on an empty middle square")
+	if ResourceLoader.exists("res://scripts/survival/survival_screen.gd"):
+		_check(cs.bomb_sq >= 16 and cs.bomb_sq < 48 and r.board[cs.bomb_sq] == 0, "bomb hidden on an empty middle square")
 	cs.bomb_sq = -1
 	# revival: home square first, never giving check, pawns never on the back rank
 	r.remove_piece(ChessRules.square_from_name("e2"))

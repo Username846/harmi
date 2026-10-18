@@ -19,6 +19,7 @@ var car_on := false
 var car_pos := Vector2.ZERO
 var car_dir := 1.0
 var top := {} # the Beyblade, while it is loose on the board
+var bomb := {} # {"sq", "t"} once the hidden bomb shows itself
 var _t := 0.0
 
 
@@ -37,6 +38,8 @@ func _process(delta: float) -> void:
 		sp["p"] += sp["v"] * delta
 	if not top.is_empty():
 		top["spin"] = float(top["spin"]) + delta * float(top.get("speed", 20.0))
+	if not bomb.is_empty():
+		bomb["t"] = float(bomb["t"]) + delta
 	tracers = tracers.filter(func(e): return e["t"] < e["life"])
 	flashes = flashes.filter(func(e): return e["t"] < e["life"])
 	sparks = sparks.filter(func(e): return e["t"] < e["life"])
@@ -186,9 +189,76 @@ func beyblade_crash(start: Vector2, on_hit: Callable) -> int:
 	return hit_ids.size()
 
 
+## The square under a piece clicks, splits open, and something with fins and a
+## hazard stripe peeks out, beeping. Takes about two seconds.
+func bomb_reveal(s: int) -> void:
+	bomb = {"sq": s, "t": 0.0}
+	await _wait(1.95)
+	board.shake(0.6)
+
+
+func _draw_bomb() -> void:
+	var sq := board.sq
+	var bt: float = bomb["t"]
+	var r := board.square_rect(int(bomb["sq"]))
+	var c := r.get_center() + Vector2(0, sq * 0.2)
+	# the tiles crack, then slide apart over a dark hole
+	var open := clampf((bt - 0.25) / 0.45, 0.0, 1.0)
+	var hole := Rect2(Vector2(c.x - sq * 0.44 * open, r.position.y + sq * 0.4), Vector2(sq * 0.88 * open, sq * 0.56))
+	if bt > 0.05:
+		draw_line(r.position + Vector2(sq * 0.5, sq * 0.3), r.position + Vector2(sq * 0.45, sq), Color(0.05, 0.03, 0.02), 2.0)
+		draw_line(r.position + Vector2(sq * 0.2, sq * 0.7), r.position + Vector2(sq * 0.8, sq * 0.62), Color(0.05, 0.03, 0.02), 2.0)
+	if open > 0.0:
+		draw_rect(hole, Color(0.03, 0.02, 0.02))
+	# the bomb rises a little out of the hole
+	var rise := clampf((bt - 0.5) / 0.5, 0.0, 1.0)
+	if rise > 0.0:
+		var bc := Vector2(c.x, r.position.y + sq * 0.86 - rise * sq * 0.36)
+		var bw := sq * 0.36
+		var body := Color(0.55, 0.52, 0.28)
+		var pts := PackedVector2Array()
+		for i in 24:
+			var a := TAU * i / 24.0
+			pts.append(bc + Vector2(cos(a) * bw, sin(a) * bw * 0.62))
+		draw_colored_polygon(pts, body)
+		# hazard band
+		var band := Rect2(Vector2(bc.x - bw * 0.95, bc.y - bw * 0.12), Vector2(bw * 1.9, bw * 0.24))
+		draw_rect(band, Color(0.95, 0.8, 0.15))
+		for k in 5:
+			var x0 := band.position.x + k * band.size.x / 5.0
+			draw_colored_polygon(PackedVector2Array([Vector2(x0, band.end.y), Vector2(x0 + band.size.x * 0.1, band.position.y),
+				Vector2(x0 + band.size.x * 0.18, band.position.y), Vector2(x0 + band.size.x * 0.08, band.end.y)]), Color(0.08, 0.07, 0.05))
+		# a little trefoil
+		var tc := bc + Vector2(0, -bw * 0.34)
+		draw_circle(tc, bw * 0.07, Color(0.08, 0.07, 0.05))
+		for k in 3:
+			var a2 := -PI * 0.5 + TAU * k / 3.0
+			var wedge := PackedVector2Array([tc])
+			for j in 7:
+				var aa := a2 - 0.5 + j / 6.0
+				wedge.append(tc + Vector2(cos(aa), sin(aa)) * bw * 0.26)
+			draw_colored_polygon(wedge, Color(0.08, 0.07, 0.05))
+		draw_circle(tc, bw * 0.1, Color(0.95, 0.8, 0.15))
+		draw_circle(tc, bw * 0.06, Color(0.08, 0.07, 0.05))
+		# the warning light, blinking with each beep, then steady
+		var lp := bc + Vector2(bw * 0.55, -bw * 0.5)
+		var on := bt > 1.6 or fmod(bt - 0.45, 0.45) < 0.15 and bt > 0.45
+		draw_circle(lp, bw * 0.12, Color(0.3, 0.05, 0.05))
+		if on:
+			draw_circle(lp, bw * 0.45, Color(1.0, 0.1, 0.05, 0.25))
+			draw_circle(lp, bw * 0.12, Color(1.0, 0.25, 0.15))
+	# the last moment: everything goes white
+	if bt > 1.6:
+		var k3 := clampf((bt - 1.6) / 0.35, 0.0, 1.0)
+		draw_circle(c, sq * (0.3 + k3 * 1.4), Color(1, 1, 0.95, 0.4 + 0.6 * k3))
+		draw_circle(c, sq * (0.6 + k3 * 2.4), Color(1, 0.95, 0.8, 0.25 * k3))
+
+
 func _draw() -> void:
 	if board == null:
 		return
+	if not bomb.is_empty():
+		_draw_bomb()
 	var sq := board.sq
 	for tr in tracers:
 		var k: float = 1.0 - tr["t"] / tr["life"]

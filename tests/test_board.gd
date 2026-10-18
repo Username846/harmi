@@ -17,6 +17,9 @@ func _ready() -> void:
 	var cs := ChessScreen.new()
 	add_child(cs)
 	var r := cs.rules
+	# the hidden bomb sits on an empty middle square and stays quiet for the other checks
+	_check(cs.bomb_sq >= 16 and cs.bomb_sq < 48 and r.board[cs.bomb_sq] == 0, "bomb hidden on an empty middle square")
+	cs.bomb_sq = -1
 	# revival: home square first, never giving check, pawns never on the back rank
 	r.remove_piece(ChessRules.square_from_name("e2"))
 	_check(cs._revive_square(ChessRules.WHITE, ChessRules.PAWN) == ChessRules.square_from_name("e2"), "pawn revives on its home square")
@@ -117,5 +120,20 @@ func _ready() -> void:
 		_check(int(o["pay"]) >= 0 and float(o["mood"]) > -30.0, "job outcome sane")
 	await get_tree().create_timer(1.6).timeout
 	_check(r.side == ChessRules.BLACK, "the card duel used White's turn")
+	# stepping on the bomb ends the chess game
+	var boom := {}
+	cs.nuked.connect(func(info: Dictionary): boom.merge(info))
+	r.setup_start()
+	cs.state = "idle"
+	cs.bomb_sq = ChessRules.square_from_name("e4")
+	cs._turn_done(ChessRules.WHITE)
+	_check(boom.is_empty() and cs.state != "nuked", "nothing happens while the square is empty")
+	for m in r.legal_moves():
+		if m["from"] == ChessRules.square_from_name("e2") and m["to"] == ChessRules.square_from_name("e4"):
+			r.play(m)
+	cs._turn_done(ChessRules.WHITE)
+	_check(cs.state == "nuked", "a piece on the bomb square sets it off")
+	await get_tree().create_timer(2.3).timeout
+	_check(String(boom.get("square", "")) == "e4" and String(boom.get("piece", "")) == "White Pawn", "nuked signal names the square and piece: %s" % str(boom))
 	print("BOARD TESTS PASSED" if ok else "BOARD TESTS FAILED")
 	get_tree().quit(0 if ok else 1)

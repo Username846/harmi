@@ -108,6 +108,10 @@ func play_crash() -> void:
 	_sfx(CRASH_STREAM)
 
 
+func play_sfx(stream: AudioStream) -> void:
+	_sfx(stream)
+
+
 func _sfx(stream: AudioStream) -> void:
 	sfx.stream = stream
 	sfx.play()

@@ -6,6 +6,8 @@
                        bass, metal pings and the whir of the spin
   ripcord.wav          the rip cord being pulled
   crash.wav            the Beyblade snapping off and crashing into the board
+  arm.wav              a hidden bomb under the board arming itself: click, three beeps
+  nuke.wav             the detonation: a crack, a long rumble, the shockwave, fires
 
 Run from the repository root:  python3 tools/gen_audio.py
 """
@@ -193,6 +195,64 @@ def render_crash():
     return buf
 
 
+def render_arm():
+    t = t_axis(2.0)
+    buf = np.zeros(len(t))
+    # the click of a pressure plate
+    click = rng.standard_normal(int(0.02 * SR)) * np.exp(-np.arange(int(0.02 * SR)) / SR * 300)
+    buf[: len(click)] += click * 0.8
+    for i in range(3):
+        start = 0.45 + i * 0.45
+        tb = t_axis(0.12)
+        beep = np.sign(np.sin(2 * np.pi * 1480 * tb)) * 0.25 * np.clip((0.12 - tb) / 0.02, 0, 1)
+        i0 = int(start * SR)
+        buf[i0: i0 + len(beep)] += beep
+    return buf
+
+
+def brown(n, leak=0.995):
+    w = rng.standard_normal(n)
+    out = np.zeros(n)
+    acc = 0.0
+    for i in range(n):
+        acc = acc * leak + w[i]
+        out[i] = acc
+    return out / max(1e-9, np.max(np.abs(out)))
+
+
+def render_nuke():
+    dur = 11.0
+    t = t_axis(dur)
+    n = len(t)
+    buf = np.zeros(n)
+    # the initial crack
+    crack = rng.standard_normal(int(0.25 * SR)) * np.exp(-np.arange(int(0.25 * SR)) / SR * 18)
+    buf[: len(crack)] += crack * 0.9
+    # a deep rumble that swells and rolls on
+    rumble = brown(n, 0.998)
+    env = np.clip(t / 0.6, 0, 1) * np.exp(-np.maximum(t - 1.2, 0) / 4.5)
+    buf += rumble * env * 1.4
+    sub = np.sin(2 * np.pi * np.cumsum(28 + 30 * np.exp(-t * 0.7)) / SR) * env * 0.7
+    buf += sub
+    # the shockwave arriving: a whoomp and a roaring wind
+    hit = 3.6
+    i0 = int(hit * SR)
+    tw = t_axis(dur - hit)
+    whoomp = np.sin(2 * np.pi * np.cumsum(70 * np.exp(-tw * 3) + 30) / SR) * np.exp(-tw * 2.5)
+    wind = brown(len(tw), 0.97) * np.clip(tw / 0.15, 0, 1) * np.exp(-tw / 2.2)
+    buf[i0: i0 + len(tw)] += whoomp * 0.9 + wind * 0.8
+    # fires crackling as it dies away
+    crackle = np.zeros(n)
+    for _ in range(140):
+        at = rng.uniform(4.5, dur - 0.2)
+        k = int(at * SR)
+        m = int(0.012 * SR)
+        crackle[k: k + m] += rng.standard_normal(m) * np.exp(-np.arange(m) / SR * 400) * rng.uniform(0.1, 0.35)
+    buf += crackle * np.clip((t - 4.5) / 1.5, 0, 1)
+    buf *= np.clip((dur - t) / 1.5, 0, 1)
+    return buf
+
+
 def save(name, buf, peak=0.89):
     buf = np.tanh(buf * 1.1)
     buf = buf / max(1e-9, np.max(np.abs(buf))) * peak
@@ -211,3 +271,5 @@ if __name__ == "__main__":
     save("beyblade_stairs.wav", render_loop())
     save("ripcord.wav", render_rip(), 0.8)
     save("crash.wav", render_crash(), 0.95)
+    save("arm.wav", render_arm(), 0.7)
+    save("nuke.wav", render_nuke(), 0.97)

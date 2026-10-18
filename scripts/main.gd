@@ -44,6 +44,10 @@ func _ready() -> void:
 	if dbg.has("fen"):
 		await _start_game(dbg.get("ai", "1") == "1", 1)
 		chess.load_position(String(dbg["fen"]).uri_decode().replace("_", " "))
+		_debug_bomb()
+		return
+	if dbg.has("nuke"):
+		_on_nuked({"square": "e4", "piece": "White Pawn"})
 		return
 	show_title()
 
@@ -184,8 +188,56 @@ func _start_game(vs_ai: bool, difficulty: int) -> void:
 	chess = ChessScreen.new()
 	chess.encounter_requested.connect(_on_encounter_requested)
 	chess.quit_to_title.connect(_quit_to_title)
+	chess.nuked.connect(_on_nuked)
 	layer.add_child(chess)
+	_debug_bomb()
 	await _fade_to(0.0, 0.5)
+
+
+## Testing shortcut: &bomb=e4 moves the hidden bomb (&bomb=none removes it).
+func _debug_bomb() -> void:
+	if chess and dbg.has("bomb"):
+		var name := String(dbg["bomb"])
+		chess.bomb_sq = -1 if name == "none" else ChessRules.square_from_name(name)
+
+
+## A piece stepped on the hidden bomb. The town goes up, the chess game is
+## gone for good, and what's left is surviving in the ruins.
+func _on_nuked(info: Dictionary) -> void:
+	var scene := NukeScene.new()
+	scene.town = String(dbg.get("town", NukeScene.town_name())).uri_decode().replace("_", " ")
+	scene.caption = "(It started when a %s stepped onto %s.)" % [info.get("piece", "piece"), info.get("square", "a square")]
+	add_child(scene)
+	await scene.finished
+	move_child(fade, get_child_count() - 1)
+	await _fade_to(1.0, 0.8)
+	scene.queue_free()
+	if encounter:
+		encounter.queue_free()
+		encounter = null
+	if chess:
+		chess.queue_free()
+		chess = null
+	var path: String = SCREEN_SCRIPTS["survival"]
+	if not ResourceLoader.exists(path):
+		show_title()
+		await _fade_to(0.0)
+		return
+	var script: GDScript = load(path)
+	encounter = script.new()
+	encounter.call("setup", {"town": scene.town, "difficulty": Game.difficulty})
+	encounter.connect("finished", _on_survival_over)
+	layer.add_child(encounter)
+	await _fade_to(0.0, 1.2)
+
+
+func _on_survival_over(_result: String) -> void:
+	await _fade_to(1.0, 0.6)
+	if encounter:
+		encounter.queue_free()
+		encounter = null
+	show_title()
+	await _fade_to(0.0, 0.6)
 
 
 func _quit_to_title() -> void:

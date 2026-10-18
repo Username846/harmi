@@ -117,6 +117,21 @@ docs/                    Exported web build served by GitHub Pages
 
 All art is drawn procedurally in code. The music is synthesized by `tools/gen_audio.py` (Python + numpy).
 
+<details>
+<summary>Spoilers (for developers only)</summary>
+
+A nuclear bomb is hidden under one random empty square in ranks 3-6 at the start of every match. Nothing on
+the board, in Inspect or in the help gives it away. The moment any piece of either side ends up on that
+square (a move, a capture, a Beyblade knock or a piece won back from the graveyard), the square splits
+open, the bomb beeps three times, and a full-screen animation shows the town being destroyed. The town is
+named after the player's time-zone city (`America/Chicago` -> Chicago), read from the browser without asking
+for location; it falls back to "Ashenford". The chess game is then over for good and the survival game
+begins in the ruins: scavenge for food and water, keep radiation down and signal the authorities until
+they find you. Testing shortcuts: `&bomb=e4` (or `&bomb=none`) places the bomb, `?nuke=1&town=Springfield`
+plays the explosion straight away, and `?screen=survival&town=Springfield` jumps into the ruins.
+
+</details>
+
 ## Development
 
 Open the folder in **Godot 4.7.2** and press Play. Run the tests from a terminal:

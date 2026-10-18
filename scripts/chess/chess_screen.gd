@@ -6,8 +6,10 @@ extends Control
 
 signal encounter_requested(info: Dictionary)
 signal quit_to_title
+signal nuked(info: Dictionary)
 
 const PINK := Color(1.0, 0.45, 0.75)
+const ARM_SOUND := preload("res://assets/audio/arm.wav")
 const SHORT_REASON := {"is away on a job": "away", "is knocked over": "knocked over", "has no car": "no car"}
 
 var rules := ChessRules.new()
@@ -35,6 +37,7 @@ var turn_no := 0
 var _upkept := -1
 var _menu: Control = null
 var _gen := 0 # bumped on every new game so stale coroutines can bail out
+var bomb_sq := -1 # somewhere under the board. Never drawn, never mentioned.
 
 
 func _ready() -> void:
@@ -125,6 +128,7 @@ func new_game() -> void:
 	double_move = [false, false]
 	turn_no = 0
 	_upkept = -1
+	_plant_bomb()
 	# every new game comes with a fresh Beyblade
 	if Music.broken:
 		Music.repair()
@@ -148,6 +152,7 @@ func load_position(fen: String) -> void:
 			rules.ids[s] = s + (100 if (rules.board[s] & 8) else 0)
 	board.last_from = -1
 	board.last_to = -1
+	_plant_bomb()
 	_log("[color=#a9a39f](Loaded test position.)[/color]")
 	_start_turn()
 
@@ -302,8 +307,51 @@ func _upkeep(color: int) -> void:
 		p["job"] = ""
 
 
+## Buries the bomb under one of the empty middle squares (ranks 3-6).
+func _plant_bomb() -> void:
+	var empty: Array = []
+	for s in range(16, 48):
+		if rules.board[s] == 0:
+			empty.append(s)
+	bomb_sq = -1 if empty.is_empty() else int(empty[randi() % empty.size()])
+
+
+## True (and the end begins) if anything is now standing on the bomb.
+func _check_bomb() -> bool:
+	if bomb_sq < 0 or rules.board[bomb_sq] == 0 or state == "nuked":
+		return false
+	_detonate()
+	return true
+
+
+func _detonate() -> void:
+	var s := bomb_sq
+	var code := rules.board[s]
+	state = "nuked"
+	_close_menu()
+	board.interactive = false
+	board.selected = -1
+	board.targets = {}
+	var g := _gen
+	Music.catch_top()
+	Music.play_sfx(ARM_SOUND)
+	_log("[color=#e2643a]Click.[/color]")
+	status_label.text = "..."
+	sub_label.text = ""
+	await board.fx.bomb_reveal(s)
+	if not _alive(g):
+		return
+	nuked.emit({
+		"square": ChessRules.square_name(s),
+		"piece": Game.piece_title(code & 7, ChessRules.color_of(code)),
+		"screen_pos": board.get_global_transform() * board.square_center(s),
+	})
+
+
 ## Called after every completed turn (a move or an off-board action).
 func _turn_done(mover: int) -> void:
+	if _check_bomb():
+		return
 	for s in 64:
 		var code := rules.board[s]
 		if code == 0 or ChessRules.color_of(code) != mover:
@@ -1201,7 +1249,7 @@ func resolve_encounter(result: String) -> void:
 # --- graveyard --------------------------------------------------------------------
 
 func _show_graveyard() -> void:
-	if state == "encounter":
+	if state == "encounter" or state == "nuked":
 		return
 	var color := _human_side()
 	var why := ""
@@ -1332,6 +1380,8 @@ func _crash_beyblade() -> void:
 		_log("[color=#6fb3d9]You snap your Spare Beyblade onto the launcher.[/color]")
 	else:
 		_log("[color=#a9a39f]The volume control is gone. The shop sells Spare Beyblades.[/color]")
+	if _check_bomb():
+		return
 	_start_turn()
 
 
@@ -1370,7 +1420,7 @@ func _knock(s: int, dir: Vector2i) -> void:
 # --- panels -------------------------------------------------------------------
 
 func _show_inventory() -> void:
-	if state == "encounter":
+	if state == "encounter" or state == "nuked":
 		return
 	var ctx := "turn" if state == "idle" and _is_human(rules.side) else "view"
 	var inv := InventoryPanel.new(ctx, "Inventory")
@@ -1379,7 +1429,7 @@ func _show_inventory() -> void:
 
 
 func _show_shop() -> void:
-	if state == "encounter":
+	if state == "encounter" or state == "nuked":
 		return
 	var shop := ShopPanel.new()
 	shop.bought.connect(func(id: String, note: String):
@@ -1388,7 +1438,7 @@ func _show_shop() -> void:
 
 
 func _show_menu() -> void:
-	if state == "encounter":
+	if state == "encounter" or state == "nuked":
 		return
 	var m := Modal.new("Menu", 420.0)
 	var vb := VBoxContainer.new()

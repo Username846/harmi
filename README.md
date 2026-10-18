@@ -109,6 +109,8 @@ scripts/
   race/                  Pink slip drag race
   date/                  Dates
   cards/                 Yugi Moto's children's card game
+  nuke/                  (spoiler) the end of the town
+  survival/              (spoiler) surviving in the ruins
   title/, ui/            Title screen, theme, modals, inventory, shop, graveyard, Beyblade widget, item icons, help
 assets/audio/            The bassline and two sound effects (rendered by tools/gen_audio.py)
 tests/                   Headless tests (perft, labyrinths, board actions, AI timing, minigames)
@@ -128,7 +130,8 @@ named after the player's time-zone city (`America/Chicago` -> Chicago), read fro
 for location; it falls back to "Ashenford". The chess game is then over for good and the survival game
 begins in the ruins: scavenge for food and water, keep radiation down and signal the authorities until
 they find you. Testing shortcuts: `&bomb=e4` (or `&bomb=none`) places the bomb, `?nuke=1&town=Springfield`
-plays the explosion straight away, and `?screen=survival&town=Springfield` jumps into the ruins.
+plays the explosion straight away, and `?screen=survival&town=Springfield` jumps into the ruins
+(`&seed=N` fixes the dice, `&rescue=N` starts the rescue meter at N%).
 
 </details>
 
@@ -148,6 +151,8 @@ godot --headless --path . -s tests/test_date.gd     # date dialogue data
 godot --headless --path . res://tests/date_flow.tscn
 godot --headless --path . -s tests/test_cards.gd    # card rules and Yugi's win rates
 godot --headless --path . res://tests/card_screen.tscn
+godot --headless --path . -s tests/test_survival.gd # survival balance across bots and difficulties
+godot --headless --path . res://tests/survival_flow.tscn
 godot --headless --path . -s tests/test_ai.gd       # AI timing per difficulty
 python3 tools/gen_audio.py                          # re-render the music and sound effects
 ```

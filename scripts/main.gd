@@ -92,10 +92,11 @@ const SCREEN_SCRIPTS := {
 	"race": "res://scripts/race/race_screen.gd",
 	"date": "res://scripts/date/date_screen.gd",
 	"cards": "res://scripts/cards/card_duel_screen.gd",
+	"survival": "res://scripts/survival/survival_screen.gd",
 }
 
 
-## Testing shortcut for the side screens: ?screen=race (or date, cards) with
+## Testing shortcut for the side screens: ?screen=race (or date, cards, survival&town=Springfield) with
 ## optional &hero=2&foe=4&hmood=72&fmood=30&diff=1&own=1&money=50&items=nitrous,roses
 func _debug_screen() -> void:
 	Game.new_game()
@@ -112,6 +113,7 @@ func _debug_screen() -> void:
 		"date_type": int(dbg.get("foe", "4")), "date_color": 0 if own else 1, "date_id": 0 if own else 56,
 		"date_mood": float(dbg.get("fmood", "40")), "own": own,
 		"player_color": 0, "wager_type": int(dbg.get("foe", "4")),
+		"town": String(dbg.get("town", "Ashenford")).uri_decode().replace("_", " "),
 	}
 	Game.set_mood(info["date_id"], info["date_mood"])
 	var script: GDScript = load(SCREEN_SCRIPTS.get(dbg["screen"], SCREEN_SCRIPTS["race"]))

@@ -5,7 +5,8 @@ extends Control
 ## the grave. Call setup(info) before add_child; emits finished("won"/"lost").
 ##
 ## info: player_color (0 white / 1 black), wager_type (1 pawn .. 5 queen),
-## difficulty (0 easy, 1 normal, 2 hard).
+## difficulty (0 easy, 1 normal, 2 hard), for_reals (a shadow game: 12,000 LP,
+## the hardest Yugi, a dark arena, and the loser goes to the Shadow Realm).
 ##
 ## The rules live in CardGame. This screen keeps a "view" copy of the table
 ## that it updates event by event while animating, then re-syncs with the engine.
@@ -24,6 +25,7 @@ var game: CardGame
 var player_white := true
 var wager := 4
 var difficulty := 1
+var for_reals := false
 
 # side panel
 var panel: PanelContainer
@@ -73,6 +75,11 @@ var heart_glow := 0.0
 var swords_fx: Array = [0.0, 0.0]
 var banner := ""
 var banner_time := 0.0
+var doom := "" # for reals: "yugi" or "player" while the shadows take the loser
+var doom_t := 0.0
+var drone: AudioStreamPlayer
+var _shk := Vector2.ZERO
+var _doom_layer: Control # drawn above the side panel while the player is swallowed
 
 
 func setup(i: Dictionary) -> void:
@@ -80,8 +87,15 @@ func setup(i: Dictionary) -> void:
 	player_white = int(i.get("player_color", 0)) == 0
 	wager = clampi(int(i.get("wager_type", 4)), 1, 6)
 	difficulty = clampi(int(i.get("difficulty", 1)), 0, 2)
+	for_reals = bool(i.get("for_reals", false))
+	if for_reals:
+		difficulty = 2 # Yugi plays at his very best when it's for real
+		yugi_expr = "determined"
 	var deck: Array = CardData.base_deck() + _booster_cards()
 	game = CardGame.new(deck, CardData.yugi_deck(difficulty), -1, difficulty)
+	if for_reals:
+		game.make_for_reals()
+	disp_lp = [float(game.start_lp), float(game.start_lp)]
 
 
 ## Extra cards the player bought in booster packs (Game.decks[Game.active_side]).
@@ -98,12 +112,23 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	if game == null:
 		setup(info)
+	if for_reals and not game.for_reals:
+		game.make_for_reals() # a test may swap in its own CardGame after setup
+	disp_lp = [float(game.start_lp), float(game.start_lp)]
 	_empty_view()
 	_build_panel()
+	if for_reals:
+		panel.add_theme_stylebox_override("panel", UI.panel_style(Color(0.07, 0.035, 0.1, 0.97), Color(0.5, 0.26, 0.7)))
+		drone = ShadowArt.play_drone(self, "duel", -13.0)
 	resized.connect(_relayout)
 	panel.minimum_size_changed.connect(_queue_relayout)
 	_relayout()
 	_intro()
+
+
+func _exit_tree() -> void:
+	if drone:
+		drone.stop()
 
 
 func _wager_name() -> String:
@@ -285,7 +310,7 @@ func _compute_layout(R: Rect2) -> float:
 # --- view model ------------------------------------------------------------------------
 
 func _empty_view() -> void:
-	view = {"fields": [[null, null, null], [null, null, null]], "hands": [[], []], "lp": [CardGame.START_LP, CardGame.START_LP],
+	view = {"fields": [[null, null, null], [null, null, null]], "hands": [[], []], "lp": [game.start_lp, game.start_lp],
 		"deck": [game.decks[0].size(), game.decks[1].size()], "grave": [0, 0]}
 
 
@@ -375,6 +400,25 @@ func _intro() -> void:
 	_refresh_ui()
 	game.start()
 	view["deck"] = [game.decks[0].size() + game.hands[0].size(), game.decks[1].size() + game.hands[1].size()]
+	if for_reals:
+		_log("[color=#b07cff][b]The sky goes black. Purple mist pours between the graves.[/b][/color]")
+		_log("Yugi's golden puzzle pendant blazes. This is a shadow game for your %s: %d LP each, and the loser goes to the Shadow Realm." % [_wager_name(), game.start_lp])
+		_say("This time... it's for real.", "determined", 2.6)
+		await _wait(1.4)
+		await _play_events()
+		if not is_inside_tree():
+			return
+		_say("The loser goes to the Shadow Realm!", "determined", 3.6)
+		busy = false
+		_refresh_ui()
+		# testing hook: ?screen=cards&reals=1&doom=won (or lost) jumps to the ending
+		var doom_test := ShadowRealmScreen._url_param("doom")
+		if doom_test == "won" or doom_test == "lost":
+			await _wait(1.0)
+			game._set_winner(ME if doom_test == "won" else YUGI, "lp")
+			game.take_events()
+			await _game_over()
+		return
 	_log("[color=#e0aa4a][b]A spiky-haired kid blocks the graveyard path.[/b][/color]")
 	_log("Yugi Moto challenges you to a children's card game. Win, and your %s rises from the grave!" % _wager_name())
 	_say("It's time to duel!", "determined", 2.0)
@@ -501,6 +545,9 @@ func _game_over() -> void:
 	var won := game.winner == ME
 	var timeout := game.win_reason == "time"
 	var piece := _wager_name()
+	if for_reals:
+		await _reals_ending(won, timeout, false)
+		return
 	if won:
 		_log("[color=#6cc060][b]Yugi is out of Life Points. You win the duel![/b][/color]")
 		_say("Impossible... you beat me fair and square!", "shocked", 2.2)
@@ -509,7 +556,7 @@ func _game_over() -> void:
 	else:
 		if timeout:
 			var tie := int(view["lp"][ME]) == int(view["lp"][YUGI])
-			_log("[color=#e2643a][b]Time is up after %d turns.[/b][/color]" % CardGame.MAX_TURNS)
+			_log("[color=#e2643a][b]Time is up after %d turns.[/b][/color]" % game.max_turns)
 			_say("Time's up! %sThe heart of the cards has spoken!" % ("A tie goes to me! " if tie else ""), "happy", 6.0)
 		else:
 			_log("[color=#e2643a][b]Your Life Points hit zero. Yugi wins the duel.[/b][/color]")
@@ -528,6 +575,59 @@ func _game_over() -> void:
 		var why := "Time ran out and Yugi was ahead%s." % (" (ties go to Yugi)" if int(view["lp"][ME]) == int(view["lp"][YUGI]) else "") if timeout else "Your Life Points ran out."
 		m.add_text("%s Your %s stays buried in the graveyard... for now." % [why, piece])
 		m.add_buttons([["Leave the graveyard", func():
+			m.close()
+			_finish("lost")]])
+	add_child(m)
+
+
+## The end of a shadow game: the loser is dragged into the Shadow Realm.
+func _reals_ending(won: bool, timeout: bool, forfeit: bool) -> void:
+	var piece := _wager_name()
+	if won:
+		_log("[color=#6cc060][b]Yugi is out of Life Points. You win the shadow game![/b][/color]")
+		_say("Impossible... it can't end like this...", "shocked", 2.2)
+		await _wait(1.6)
+		if not is_inside_tree():
+			return
+		_log("[color=#b07cff][b]The shadows rise around Yugi and drag him down.[/b][/color]")
+		_say("No! The heart of the cards... has abandoned me!", "shocked", 4.5)
+		doom = "yugi"
+	else:
+		if forfeit:
+			_log("[color=#e2643a][b]You turn to run. There is no running from a shadow game.[/b][/color]")
+			_say("You can't walk away from a shadow game!", "determined", 4.0)
+		elif timeout:
+			_log("[color=#e2643a][b]Time is up after %d turns, and Yugi is ahead.[/b][/color]" % game.max_turns)
+			_say("Time's up! The shadows have made their choice!", "determined", 4.0)
+		else:
+			_log("[color=#e2643a][b]Your Life Points hit zero.[/b][/color]")
+			_say("The shadows have made their choice!", "determined", 4.0)
+		await _wait(1.2)
+		if not is_inside_tree():
+			return
+		_log("[color=#b07cff][b]The ground opens beneath you.[/b][/color]")
+		doom = "player"
+		_doom_layer = Control.new()
+		_doom_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_doom_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_doom_layer.draw.connect(func(): _draw_player_doom(_doom_layer))
+		add_child(_doom_layer)
+	doom_t = 0.0
+	shake = 0.6
+	await _wait(3.6)
+	if not is_inside_tree():
+		return
+	var m := Modal.new("Yugi is gone!" if won else "Swallowed by the shadows", 460.0)
+	m.sticky = true
+	if won:
+		m.add_text("Yugi has been sent to the Shadow Realm. His cards scatter in the wind, and the graveyard falls silent.")
+		m.add_text("Your %s climbs out of the grave. Nobody will ever duel for the dead again." % piece, 17, UI.DIM)
+		m.add_buttons([["Take back your %s" % piece, func():
+			m.close()
+			_finish("won")]])
+	else:
+		m.add_text("You have lost a shadow game. The darkness closes over you, and the chessboard fades far, far away.")
+		m.add_buttons([["Into the Shadow Realm", func():
 			m.close()
 			_finish("lost")]])
 	add_child(m)
@@ -566,16 +666,23 @@ func _play_event(ev: Dictionary) -> void:
 			var mine := s == ME
 			banner = "YOUR TURN" if mine else "YUGI'S TURN"
 			banner_time = 1.3
-			_log("[color=#8f877a]-- Turn %d of %d: %s --[/color]" % [int(ev["turn"]), CardGame.MAX_TURNS, "you" if mine else "Yugi"])
+			_log("[color=#8f877a]-- Turn %d of %d: %s --[/color]" % [int(ev["turn"]), game.max_turns, "you" if mine else "Yugi"])
 			if bool(ev.get("locked", false)):
 				_log("[color=#7fa6ff]Swords of light pin %s monsters: no attacks this turn.[/color]" % ("your" if mine else "Yugi's"))
 			elif not mine and int(ev["turn"]) > 2 and randf() < 0.3:
-				_say(["My turn! I draw!", "Here I come!", "Don't count me out yet!"][randi() % 3], "determined", 1.6)
+				var taunts: Array = ["The shadows are hungry!", "My turn! I draw... from the darkness!", "Can you feel the Shadow Realm calling?"] if for_reals else ["My turn! I draw!", "Here I come!", "Don't count me out yet!"]
+				_say(String(taunts[randi() % 3]), "determined", 1.6)
 			await _wait(0.3 if int(ev["turn"]) > 1 else 0.05)
 		"draw":
 			await _anim_draw(ev)
 		"nodraw":
 			_log("%s deck is empty, so no card is drawn." % _who(s))
+		"recycle":
+			view["deck"][s] = int(view["deck"][s]) + int(ev["count"])
+			view["grave"][s] = 0
+			_rise(_deck_rect(s).get_center(), ShadowArt.PURPLE, 24)
+			_log("[color=#b07cff]The shadows push %d fallen cards back into %s deck.[/color]" % [int(ev["count"]), "your" if s == ME else "Yugi's"])
+			await _wait(0.5)
 		"summon":
 			await _anim_summon(ev)
 		"spell":
@@ -896,8 +1003,12 @@ func _process(delta: float) -> void:
 	if bubble_time > 0.0:
 		bubble_time -= delta
 		if bubble_time <= 0.0 and not over:
-			yugi_expr = "determined" if int(view["lp"][YUGI]) < CardGame.HEART_LP else "smug"
+			yugi_expr = "determined" if for_reals or int(view["lp"][YUGI]) < game.heart_lp else "smug"
 	shake = maxf(0.0, shake - delta * 2.2)
+	if doom != "":
+		doom_t += delta
+		if _doom_layer:
+			_doom_layer.queue_redraw()
 	portrait_flash = maxf(0.0, portrait_flash - delta * 2.5)
 	heart_glow = maxf(0.0, heart_glow - delta)
 	banner_time = maxf(0.0, banner_time - delta)
@@ -1100,15 +1211,24 @@ func _show_rules() -> void:
 	var sc := ScrollContainer.new()
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	sc.custom_minimum_size = Vector2(0, clampf(size.y - 190.0, 180.0, 440.0))
-	var l := UI.label("""It's a children's card game. Probably.
+	var stakes := ""
+	if for_reals:
+		stakes = """THIS TIME IT'S FOR REAL. This is a shadow game.
+- You both start with %d LP, and Yugi plays at his very best.
+- When a deck runs dry, the shadows shuffle its graveyard back in.
+- Win and your %s rises, and Yugi is dragged into the Shadow Realm forever. Nobody will duel for the dead again.
+- Lose, run out of time, or forfeit, and YOU are sent to the Shadow Realm. That is game over.
 
-- You both start with 4000 LP and a 20-card deck (plus any booster cards you bought). You open with 4 cards and draw 1 at the start of each turn. You go first and skip that first draw.
+""" % [game.start_lp, _wager_name()]
+	var l := UI.label(stakes + """It's a children's card game. Probably.
+
+- You both start with %d LP and a 20-card deck (plus any booster cards you bought). You open with 4 cards and draw 1 at the start of each turn. You go first and skip that first draw.
 - Each turn you may summon one monster into one of your 3 zones and cast one spell. Then each of your monsters may attack once, even on the turn it arrives. Nobody may attack on the very first turn of the duel.
 - Battle: the higher ATK destroys the lower, and the difference is taken from the loser's LP. Equal ATK: both are destroyed. If Yugi has no monsters, you may attack him directly for full ATK.
 - Reduce Yugi to 0 LP to win. After %d turns the higher LP wins, and ties go to Yugi.
-- Beware: once per duel, when Yugi drops below 1500 LP, he believes in the heart of the cards.
+- Beware: once per duel, when Yugi drops below %d LP, he believes in the heart of the cards.
 
-How to play: tap a card in your hand to read it, then tap it again (or an empty zone of yours) to play it. Spells with a target: tap the target. To attack, tap one of your monsters, then an enemy monster, or Yugi himself when his side is empty.""" % CardGame.MAX_TURNS, 16)
+How to play: tap a card in your hand to read it, then tap it again (or an empty zone of yours) to play it. Spells with a target: tap the target. To attack, tap one of your monsters, then an enemy monster, or Yugi himself when his side is empty.""" % [game.start_lp, game.max_turns, game.heart_lp], 16)
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sc.add_child(l)
 	m.add(sc)
@@ -1120,12 +1240,30 @@ func _on_forfeit() -> void:
 	if over:
 		return
 	var m := Modal.new("Forfeit?", 440.0)
+	if for_reals:
+		m.add_text("This is a shadow game. Forfeiting counts as a loss: you will be sent to the Shadow Realm, and that is game over.", UI.FONT_SIZE, UI.EMBER)
+		m.add_buttons([["Forfeit anyway", func():
+			m.close()
+			_forfeit_reals()], ["Keep dueling", m.close]])
+		add_child(m)
+		return
 	m.add_text("Walk away from the duel? Yugi wins, and your %s stays in the graveyard." % _wager_name())
 	m.add_buttons([["Forfeit", func():
 		m.close()
 		over = true
 		_finish("lost")], ["Keep dueling", m.close]])
 	add_child(m)
+
+
+func _forfeit_reals() -> void:
+	if over:
+		return
+	over = true
+	busy = true
+	sel_hand = -1
+	sel_zone = -1
+	_refresh_ui()
+	await _reals_ending(false, false, true)
 
 
 # --- prompt and buttons ---------------------------------------------------------------------------
@@ -1254,9 +1392,12 @@ func _outline(r: Rect2, col: Color, w: float = 3.0) -> void:
 
 func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), UI.BG)
+	if for_reals:
+		_draw_shadow_arena()
 	if lay.is_empty() or view.is_empty():
 		return
 	var shk := Vector2(randf_range(-1, 1), randf_range(-1, 1)) * shake * 7.0
+	_shk = shk
 	if shk != Vector2.ZERO:
 		draw_set_transform(shk, 0.0, Vector2.ONE)
 	_draw_mat()
@@ -1277,6 +1418,53 @@ func _draw() -> void:
 	_draw_bubble()
 
 
+## The shadow game's arena: a purple-black void, a slow vortex behind the
+## table and mist creeping along the floor.
+func _draw_shadow_arena() -> void:
+	var s := size
+	draw_polygon(PackedVector2Array([Vector2.ZERO, Vector2(s.x, 0), s, Vector2(0, s.y)]),
+		PackedColorArray([Color(0.1, 0.03, 0.14), Color(0.08, 0.02, 0.12), Color(0.02, 0.01, 0.03), Color(0.03, 0.01, 0.04)]))
+	var c := mat.get_center() if mat.has_area() else s * 0.5
+	ShadowArt.vortex(self, c, s.length() * 0.55, t * 0.25, 0.45, 0.25, 7)
+	for i in 26:
+		var p := Vector2(fmod(i * 173.3 + t * (4.0 + i % 5), s.x), fposmod(i * 91.7 - t * (6.0 + i % 3) * 2.0, s.y))
+		draw_circle(p, 1.5 + (i % 3), Color(ShadowArt.GREEN if i % 4 == 0 else ShadowArt.PURPLE, 0.25 + 0.2 * sin(t * 2.0 + i)))
+	ShadowArt.mist(self, Rect2(Vector2.ZERO, s), t, Color(0.55, 0.35, 0.75, 0.05), 10, 0.7, 1.0)
+	ShadowArt.mist(self, Rect2(Vector2.ZERO, s), t * 0.7, Color(0.35, 0.75, 0.5, 0.03), 6, 0.0, 0.25)
+
+
+## The loser of a shadow game is swallowed: the screen goes dark and a
+## vortex opens under the player's side of the table.
+func _draw_player_doom(ci: CanvasItem) -> void:
+	var k := clampf(doom_t / 3.2, 0.0, 1.0)
+	var e := k * k * (3.0 - 2.0 * k)
+	var hand: Rect2 = lay["hand"]
+	var c := Vector2(mat.get_center().x, hand.get_center().y - hand.size.y * 0.2)
+	ci.draw_rect(Rect2(Vector2.ZERO, size), Color(ShadowArt.VOID, 0.82 * e))
+	var big := size.length()
+	ShadowArt.vortex(ci, c, big * (0.08 + 0.5 * e), t * 1.6, minf(1.0, k * 3.0), 0.8, 7)
+	for i in 8:
+		var a := TAU * i / 8.0 + 0.3
+		var from := c + Vector2.from_angle(a) * big * 0.7
+		ShadowArt.tendril(ci, from, c + Vector2.from_angle(a + 0.6) * big * 0.05, t, big * 0.02, Color(0.06, 0.02, 0.09, 0.9), clampf(k * 1.6 - i * 0.05, 0.0, 1.0), i * 1.7)
+	# the player's silhouette, pulled spinning into the eye
+	var sk := clampf((doom_t - 0.6) / 2.4, 0.0, 1.0)
+	var orbit := Vector2.from_angle(-PI * 0.5 + sk * 9.0) * size.y * 0.22 * (1.0 - sk)
+	var p := c + orbit
+	var h := minf(size.x, size.y) * 0.22 * (1.0 - sk * 0.92)
+	if sk < 1.0:
+		ShadowArt.silhouette(ci, p, h, sk * sk * 14.0, Color(0.02, 0.01, 0.03, 1.0 - sk * 0.4), Color(ShadowArt.GREEN, 0.7 * (1.0 - sk)), t)
+	if doom_t > 1.0:
+		var font := ThemeDB.fallback_font
+		var txt := "SWALLOWED BY THE SHADOWS"
+		var fs := int(clampf(size.x * 0.045, 20.0, 40.0))
+		var tw := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		var a2 := clampf(doom_t - 1.0, 0.0, 1.0)
+		var tp := Vector2((size.x - tw) * 0.5, size.y * 0.16)
+		ci.draw_string_outline(font, tp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 8, Color(0, 0, 0, a2))
+		ci.draw_string(font, tp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(0.75, 0.55, 1.0, a2))
+
+
 func _draw_mat() -> void:
 	var m: Rect2 = lay["mat"]
 	var r := m.grow(6.0)
@@ -1285,8 +1473,8 @@ func _draw_mat() -> void:
 	var split := mid.get_center().y
 	var top := Rect2(r.position + Vector2(3, 3), Vector2(r.size.x - 6, split - r.position.y - 3))
 	var bot := Rect2(Vector2(r.position.x + 3, split), Vector2(r.size.x - 6, r.end.y - split - 3))
-	CardArt.fill_rrect(self, top, 12.0, FELT_TOP)
-	CardArt.fill_rrect(self, bot, 12.0, FELT_BOTTOM)
+	CardArt.fill_rrect(self, top, 12.0, Color(0.1, 0.035, 0.14) if for_reals else FELT_TOP)
+	CardArt.fill_rrect(self, bot, 12.0, Color(0.06, 0.03, 0.09) if for_reals else FELT_BOTTOM)
 	# a faint chessboard watermark across the felt
 	var sq := float(lay["cw"]) * 0.5
 	var rows := int(r.size.y / sq) + 1
@@ -1297,6 +1485,11 @@ func _draw_mat() -> void:
 				var cell := Rect2(r.position.x + xx * sq, r.position.y + yy * sq, sq, sq).intersection(r.grow(-4.0))
 				if cell.size.x > 0.0 and cell.size.y > 0.0:
 					draw_rect(cell, Color(1, 1, 1, 0.018))
+	if for_reals:
+		CardArt.line_rrect(self, r.grow(3.0), 16.0, Color(ShadowArt.PURPLE, 0.25 + 0.15 * sin(t * 1.5)), 5.0)
+		CardArt.line_rrect(self, r, 14.0, Color(0.6, 0.35, 0.85, 0.9), 2.0)
+		draw_line(Vector2(r.position.x + 10, split), Vector2(r.end.x - 10, split), Color(ShadowArt.GREEN, 0.3), 1.5)
+		return
 	CardArt.line_rrect(self, r, 14.0, Color(UI.BORDER, 0.8), 2.0)
 	draw_line(Vector2(r.position.x + 10, split), Vector2(r.end.x - 10, split), Color(UI.GOLD, 0.25), 1.5)
 
@@ -1304,14 +1497,19 @@ func _draw_mat() -> void:
 func _draw_portrait() -> void:
 	var pr := _portrait_rect()
 	CardArt.fill_rrect(self, pr, 10.0, Color(0.2, 0.12, 0.24))
+	var ptop := Color(0.16, 0.05, 0.22) if for_reals else Color(0.32, 0.16, 0.36)
+	var pbot := Color(0.02, 0.01, 0.03) if for_reals else Color(0.1, 0.06, 0.12)
 	draw_polygon(PackedVector2Array([pr.position, Vector2(pr.end.x, pr.position.y), pr.end, Vector2(pr.position.x, pr.end.y)]),
-		PackedColorArray([Color(0.32, 0.16, 0.36), Color(0.32, 0.16, 0.36), Color(0.1, 0.06, 0.12), Color(0.1, 0.06, 0.12)]))
+		PackedColorArray([ptop, ptop, pbot, pbot]))
 	if heart_glow > 0.0:
 		var a := clampf(heart_glow, 0.0, 1.0)
 		for i in 4:
 			draw_circle(pr.get_center(), pr.size.x * (0.6 - i * 0.1), Color(1.0, 0.8, 0.3, 0.08 * a))
 	var inner := pr.grow(-4.0)
-	YugiArt.draw(self, inner, t, yugi_expr)
+	if for_reals:
+		_draw_reals_yugi(pr, inner)
+	else:
+		YugiArt.draw(self, inner, t, yugi_expr)
 	if portrait_flash > 0.0:
 		CardArt.fill_rrect(self, pr, 10.0, Color(1, 0.25, 0.2, portrait_flash * 0.35))
 	var border := Color(UI.GOLD, 0.9)
@@ -1337,7 +1535,7 @@ func _draw_lp(side: int) -> void:
 	var r := _lp_rect(side)
 	var font := ThemeDB.fallback_font
 	var v: float = disp_lp[side]
-	var k := clampf(v / float(CardGame.START_LP), 0.0, 1.0)
+	var k := clampf(v / float(game.start_lp), 0.0, 1.0)
 	CardArt.fill_rrect(self, r, 5.0, Color(0.05, 0.03, 0.04, 0.9))
 	var col := Color(0.35, 0.8, 0.35).lerp(Color(0.9, 0.25, 0.15), 1.0 - k)
 	if k > 0.0:
@@ -1397,7 +1595,7 @@ func _draw_mid() -> void:
 	var mid: Rect2 = lay["mid"]
 	var font := ThemeDB.fallback_font
 	var fs := 15
-	var txt := "Turn %d / %d" % [maxi(1, game.turn), CardGame.MAX_TURNS]
+	var txt := "Turn %d / %d" % [maxi(1, game.turn), game.max_turns]
 	draw_string(font, Vector2(mid.position.x + 4, mid.get_center().y + fs * 0.36), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, UI.DIM)
 	var status := ""
 	if over:
@@ -1593,3 +1791,41 @@ func _draw_bubble() -> void:
 	draw_polyline(PackedVector2Array([tail[0], tail[2], tail[1]]), Color(0.25, 0.15, 0.1, a), 2.0, true)
 	draw_multiline_string(font, r.position + Vector2(pad, pad * 0.8 + fs * 0.95), bubble_text, HORIZONTAL_ALIGNMENT_LEFT, r.size.x - pad * 2.0, fs, -1, Color(0.12, 0.07, 0.06, a))
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+## Yugi in a shadow game: mist at his feet, the pendant blazing, and at the end
+## the vortex that swallows him.
+func _draw_reals_yugi(pr: Rect2, inner: Rect2) -> void:
+	var c := pr.get_center()
+	var f := YugiArt.figure_rect(inner)
+	var pend := f.position + Vector2(0.5, 1.03) * f.size.x
+	var k := clampf(doom_t / 3.0, 0.0, 1.0) if doom == "yugi" else 0.0
+	var e := k * k
+	if doom == "yugi":
+		ShadowArt.vortex(self, c + Vector2(0, pr.size.y * 0.15), pr.size.x * (0.25 + 0.45 * minf(1.0, k * 2.0)), t * 2.0, minf(1.0, k * 4.0), 0.7, 6)
+	# eerie shadow halo behind him
+	for i in 3:
+		draw_circle(c + Vector2(0, -pr.size.y * 0.05), pr.size.x * (0.48 - i * 0.08), Color(ShadowArt.PURPLE, 0.06))
+	var off := Vector2(0, pr.size.y * 0.2 * k)
+	var sc := 1.0 - k * 0.97
+	if sc > 0.03:
+		var local := Rect2(inner.position - c, inner.size)
+		draw_set_transform(c + off + _shk, e * 6.0 + sin(t * 30.0) * 0.04 * k, Vector2(sc, sc))
+		YugiArt.draw(self, local, t, yugi_expr)
+		# the pendant's golden blaze
+		var lp := pend - c
+		var pulse := 0.6 + 0.4 * sin(t * 4.0)
+		for i in 4:
+			draw_circle(lp, f.size.x * (0.2 - i * 0.04) * (0.9 + 0.2 * pulse), Color(1.0, 0.82, 0.3, 0.07 + 0.04 * i))
+		for i in 8:
+			var a := TAU * i / 8.0 + t * 0.6
+			draw_line(lp + Vector2.from_angle(a) * f.size.x * 0.07, lp + Vector2.from_angle(a) * f.size.x * (0.16 + 0.05 * pulse), Color(1.0, 0.9, 0.5, 0.4), maxf(1.0, f.size.x * 0.01), true)
+		draw_set_transform(_shk, 0.0, Vector2.ONE)
+	# mist curling around his shoulders
+	ShadowArt.mist(self, pr, t, Color(0.55, 0.35, 0.8, 0.07), 4, 0.8, 0.98)
+	draw_set_transform(_shk, 0.0, Vector2.ONE)
+	if doom == "yugi":
+		for i in 6:
+			var from := Vector2(pr.position.x + pr.size.x * (0.1 + i * 0.16), pr.end.y)
+			ShadowArt.tendril(self, from, c + off + Vector2((i - 2.5) * pr.size.x * 0.06, -pr.size.y * 0.1 * (1.0 - e)), t, pr.size.x * 0.06,
+				Color(0.04, 0.01, 0.07, 0.95), clampf(k * 2.2 - i * 0.08, 0.0, 1.0), i * 2.1)

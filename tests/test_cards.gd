@@ -41,6 +41,7 @@ func _init() -> void:
 			rates["%d%s" % [diff, "b" if boosted else ""]] = rate
 			print("difficulty %d %-8s bot wins %5.1f%%  avg turns %4.1f  time-outs %3d  heart %3d" % [
 				diff, "boosted" if boosted else "base", rate, float(turns) / GAMES, timeouts, hearts])
+	_check_reals()
 	# sanity on the tuning: normal sits in the target band, easy <= normal <= hard for Yugi
 	if rates["1"] < 40.0 or rates["1"] > 70.0:
 		_fail("normal win rate %.1f%% outside 40-70%%" % rates["1"])
@@ -50,6 +51,45 @@ func _init() -> void:
 		_fail("booster cards made the player weaker")
 	print("CARD TESTS ", "PASSED" if failures == 0 else "FAILED (%d)" % failures)
 	quit(1 if failures > 0 else 0)
+
+
+## "For reals": 12,000 LP, the hardest Yugi and a recycling deck. Every duel
+## must end, and most should end on Life Points rather than the clock.
+func _check_reals() -> void:
+	var g0 := CardGame.new(CardData.base_deck(), CardData.yugi_deck(2), 5, 0)
+	g0.make_for_reals()
+	g0.start()
+	if g0.lp != [CardGame.REALS_LP, CardGame.REALS_LP] or g0.difficulty != 2 or g0.max_turns != CardGame.REALS_TURNS:
+		_fail("make_for_reals did not set LP / difficulty / turn cap")
+	for boosted in [false, true]:
+		var wins := 0
+		var timeouts := 0
+		var turns := 0
+		var longest := 0
+		var n := 300
+		for i in n:
+			seed(5000 + i)
+			var deck := CardData.base_deck()
+			if boosted:
+				deck += CardData.booster() + CardData.booster()
+			var g := CardGame.new(deck, CardData.yugi_deck(2), 104729 * i + 3, 2)
+			g.make_for_reals()
+			g.start()
+			var res := _play(g)
+			if res < 0:
+				continue
+			if not g.is_over():
+				_fail("for-reals duel %d did not finish" % i)
+			if g.winner == CardGame.PLAYER:
+				wins += 1
+			if g.win_reason == "time":
+				timeouts += 1
+			turns += g.turn
+			longest = maxi(longest, g.turn)
+		print("for reals %-8s bot wins %5.1f%%  avg turns %4.1f  longest %d  time-outs %d" % [
+			"boosted" if boosted else "base", 100.0 * wins / n, float(turns) / n, longest, timeouts])
+		if timeouts > n / 10:
+			_fail("too many for-reals duels ran out the clock (%d)" % timeouts)
 
 
 func _fail(msg: String) -> void:

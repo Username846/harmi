@@ -20,6 +20,11 @@ const PLAYER := 0
 const YUGI := 1
 const EN_PASSANT_MAX := 1000
 const PINK_SLIP_MAX := 1600
+## "For reals" (a shadow game): bigger life totals, a longer clock, the
+## hardest Yugi, and a deck that never runs dry (see make_for_reals).
+const REALS_LP := 12000
+const REALS_TURNS := 60
+const REALS_HEART_LP := 4500
 
 ## How often Yugi fumbles, per difficulty (easy, normal, hard). Each chance is
 ## rolled once per turn, so a bad decision sticks.
@@ -29,6 +34,10 @@ const SLOP := [
 	{"random_summon": 0.0, "skip_attack": 0.0, "forget_pot": 0.0, "swords_doubt": 0.0, "blunder": 0.0, "swords_need": 700, "rerun_gain": 100},
 ]
 
+var start_lp := START_LP
+var max_turns := MAX_TURNS
+var heart_lp := HEART_LP
+var for_reals := false
 var lp: Array = [START_LP, START_LP]
 var decks: Array = [[], []]
 var hands: Array = [[], []]
@@ -58,6 +67,16 @@ func _init(player_deck: Array = [], yugi_deck: Array = [], seed_value: int = -1,
 		rng.randomize()
 	difficulty = clampi(diff, 0, 2)
 	decks = [player_deck.duplicate(), yugi_deck.duplicate()]
+
+
+## Turns this duel into a shadow game. Call before start().
+func make_for_reals() -> void:
+	for_reals = true
+	start_lp = REALS_LP
+	max_turns = REALS_TURNS
+	heart_lp = REALS_HEART_LP
+	lp = [REALS_LP, REALS_LP]
+	difficulty = 2
 
 
 ## Shuffles, deals the opening hands and begins the player's first turn.
@@ -121,7 +140,7 @@ func attacks_allowed() -> bool:
 
 
 func turns_left() -> int:
-	return MAX_TURNS - turn
+	return max_turns - turn
 
 
 func can_summon(side: int, hi: int, zone: int = -1) -> bool:
@@ -364,7 +383,7 @@ func end_turn() -> void:
 	if winner >= 0:
 		return
 	events.append({"t": "end", "side": current, "turn": turn})
-	if turn >= MAX_TURNS:
+	if turn >= max_turns:
 		# time is up: higher LP wins, ties go to Yugi
 		_set_winner(PLAYER if int(lp[PLAYER]) > int(lp[YUGI]) else YUGI, "time")
 		return
@@ -399,6 +418,13 @@ func _begin_turn(side: int) -> void:
 
 func _draw(side: int, opening: bool = false) -> void:
 	var deck: Array = decks[side]
+	if deck.is_empty() and for_reals and not graves[side].is_empty():
+		# in a shadow game the fallen cards crawl back into the deck
+		var n: int = graves[side].size()
+		deck.append_array(graves[side])
+		graves[side].clear()
+		_shuffle(deck)
+		events.append({"t": "recycle", "side": side, "count": n})
 	if deck.is_empty():
 		events.append({"t": "nodraw", "side": side})
 		return
@@ -436,7 +462,7 @@ func _damage(side: int, amount: int) -> void:
 	if int(lp[side]) <= 0:
 		_set_winner(1 - side, "lp")
 		return
-	if side == YUGI and not heart_used and int(lp[side]) < HEART_LP:
+	if side == YUGI and not heart_used and int(lp[side]) < heart_lp:
 		heart_used = true
 		heart_pending = true
 		events.append({"t": "heart", "side": YUGI})

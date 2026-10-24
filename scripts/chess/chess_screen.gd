@@ -1335,6 +1335,8 @@ func _execute_human(m: Dictionary) -> void:
 	if e["kind"] == "fight" and randf() < TEAM_CHANCE:
 		hero_party = _party(from, ChessRules.color_of(hero_code), [from, cap])
 		foe_party = _party(cap, ChessRules.color_of(foe_code), [from, cap])
+		# a lone attacker shouldn't get swarmed: defenders never outnumber it by more than one
+		foe_party = foe_party.slice(0, hero_party.size() + 1)
 		if not hero_party.is_empty() or not foe_party.is_empty():
 			_log("[color=#e0aa4a]The neighbours pile in! Team battle: %d vs %d.[/color]" % [hero_party.size() + 1, foe_party.size() + 1])
 	encounter_requested.emit({

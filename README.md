@@ -23,7 +23,7 @@ Off the board, your pieces have lives of their own:
   worse, and the gloomier an enemy, the **darker its labyrinth**. Take pieces on **dates** to cheer them up.
 * **The Graveyard**: fallen pieces rest here. Beat **Yugi Moto** in a children's card game to bring one back.
 * **Title track**: a five-minute diss track, "Long Boy Diss (Black Side Freestyle)", rapped by a speech
-  synthesizer over a boom-bap beat, with no line repeated and the lyrics scrolling across the top of the
+  synthesizer over a boom-bap beat, with no line repeated; the current line and (faded) the next one show across the top of the
   title screen. Tap the strip to mute it.
 * **Music**: the volume control is a **Beyblade**. Pull its rip cord harder and the bassline (a top
   bouncing down an oak staircase) plays louder and longer. Pull too hard and it snaps off and crashes

@@ -5,7 +5,7 @@ extends Control
 
 const LYRICS := preload("res://scripts/title/diss_lyrics.gd")
 const TRACK := preload("res://assets/audio/diss_track.ogg")
-const STRIP_H := 40.0
+const STRIP_H := 64.0
 
 var player: AudioStreamPlayer
 var muted := false
@@ -46,25 +46,18 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 
-var _speed_cache := 0.0
-
-
-## Fast enough that a line never runs into the next one.
-func _speed(font: Font, fs: int) -> float:
-	if _speed_cache > 0.0:
-		return _speed_cache
-	var lines: Array = LYRICS.LINES
-	_speed_cache = 120.0
-	for i in lines.size() - 1:
-		var gap: float = float(lines[i + 1][0]) - float(lines[i][0])
-		var tw := font.get_string_size(lines[i][2], HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-		_speed_cache = maxf(_speed_cache, (tw + 60.0) / gap)
-	return _speed_cache
-
-
-func _text(font: Font, p: Vector2, text: String, fs: int) -> void:
-	draw_string_outline(font, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 5, Color(0, 0, 0, 0.9))
-	draw_string(font, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, UI.GOLD)
+## One centred line, shrunk to fit if it's too long for the screen.
+func _line(font: Font, text: String, cx: float, y: float, fs: int, room: float, alpha: float) -> void:
+	if text == "":
+		return
+	var size_px := fs
+	var tw := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size_px).x
+	if tw > room:
+		size_px = maxi(11, int(fs * room / tw))
+		tw = font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size_px).x
+	var p := Vector2(cx - tw * 0.5, y)
+	draw_string_outline(font, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size_px, 5, Color(0, 0, 0, 0.9 * alpha))
+	draw_string(font, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size_px, Color(UI.GOLD.r, UI.GOLD.g, UI.GOLD.b, alpha))
 
 
 func _draw() -> void:
@@ -82,26 +75,30 @@ func _draw() -> void:
 		notice = "The Beyblade has the floor. The diss track waits its turn."
 	elif not player.playing or player.get_playback_position() < 0.05:
 		notice = "Tap anywhere to drop the beat"
+	var cx := label_w + (w - label_w) * 0.5
+	var room := w - label_w - 24.0
 	if notice != "":
-		var nw := font.get_string_size(notice, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-		_text(font, Vector2(label_w + (w - label_w - nw) * 0.5, y), notice, fs)
+		_line(font, notice, cx, STRIP_H * 0.5 + 8.0, fs, room, 1.0)
 	else:
-		# one continuous ribbon: each line enters on the right the moment it's
-		# rapped and drifts left at a steady pace
+		# two fixed lines: what's being rapped now, and what's coming next
 		var pos := player.get_playback_position()
-		var speed := _speed(font, fs)
-		for line in LYRICS.LINES:
-			var x: float = w + (float(line[0]) - pos) * speed
-			if x > w:
+		var lines: Array = LYRICS.LINES
+		var cur := -1
+		for i in lines.size():
+			if float(lines[i][0]) <= pos:
+				cur = i
+			else:
 				break
-			var tw := font.get_string_size(line[2], HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-			if x + tw < label_w:
-				continue
-			_text(font, Vector2(x, y), line[2], fs)
+		var now_text: String = lines[cur][2] if cur >= 0 else ""
+		var next_text: String = lines[cur + 1][2] if cur + 1 < lines.size() else ""
+		if cur >= 0 and pos > float(lines[cur][1]) + 1.5 and next_text != "":
+			now_text = ""  # an instrumental stretch: only the upcoming line shows
+		_line(font, now_text, cx, 28.0, fs, room, 1.0)
+		_line(font, next_text, cx, 54.0, 17, room, 0.42)
 	if label_w > 0.0:
 		# a fixed "now playing" tag the lyrics slide under
 		draw_rect(Rect2(Vector2.ZERO, Vector2(label_w, STRIP_H)), Color(0.12, 0.05, 0.05))
 		var beat := 0.5 + 0.5 * absf(sin(player.get_playback_position() * PI * 1.5)) if player.playing and not player.stream_paused else 0.5
-		draw_circle(Vector2(14, STRIP_H * 0.5), 5.0, UI.RED.lerp(Color(1, 0.6, 0.5), beat))
-		draw_string(font, Vector2(26, 17), "NOW PLAYING", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, UI.DIM)
-		draw_string(font, Vector2(26, 33), "Long Boy Diss", HORIZONTAL_ALIGNMENT_LEFT, label_w - 30.0, 14, UI.TEXT)
+		draw_circle(Vector2(14, STRIP_H * 0.5 - 4.0), 5.0, UI.RED.lerp(Color(1, 0.6, 0.5), beat))
+		draw_string(font, Vector2(26, 27), "NOW PLAYING", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, UI.DIM)
+		draw_string(font, Vector2(26, 45), "Long Boy Diss", HORIZONTAL_ALIGNMENT_LEFT, label_w - 30.0, 14, UI.TEXT)

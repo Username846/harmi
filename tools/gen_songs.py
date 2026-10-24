@@ -9,7 +9,11 @@ synthesized vocalist and beat, and no lyric ever repeated within a song.
 And the two graveyard duel themes, sung by a child, Little Pip:
 
   duel    "It's Time to Duel in the Graveyard"    Little Pip       chiptune kid pop, 96 BPM
-  reals   "The Weight of a Soul"                  Little Pip       slow and grave, 66 BPM (For Reals duels)
+
+And the For Reals duel theme, a horrorcore threat from Yugi himself:
+
+  reals   "Shadow Carnival"                       Yugi Moto        dark-carnival horrorcore, 80 BPM
+          (lines starting with "~" are his darker half, Yami, in a deeper, echoing voice)
 
 Writes assets/audio/songs/<id>.ogg and scripts/title/lyrics_<id>.gd (each
 line's start/end time, for the lyrics shown along the top of the screen).
@@ -460,77 +464,100 @@ DUEL = {
 }
 
 REALS = {
-    "intro": [(1, "This one isn't a game.")],
+    "intro": [(1, "~Welcome to the Shadow Carnival. Population: you. Not for long.")],
     "verses": [(4, [
-        "The sky went black above the stones tonight",
-        "The lanterns in the graveyard all forgot their light",
-        "He raised the golden pendant and its eye began to burn",
-        "He said there is a kind of game from which you don't return",
-        "Twelve thousand life points, measured out like years",
-        "And every one I lose is paid for in my fears",
-        "No piece upon the table, no crown, no prize to keep",
-        "The thing we wager here is what you carry in your sleep",
-        "The loser of this duel will lose their soul",
-        "And fall into the shadows where nothing can be whole",
-        "My hands are shaking as I draw my opening hand",
-        "I count the cards like heartbeats just to understand",
-        "The purple mist is rising from the ground beneath my feet",
-        "It whispers names of all the ones who came here to compete",
-        "I am small and I am scared but I will not run",
-        "Somebody has to stand here till the duel is done",
-        "So I set my first card down upon the frozen ground",
-        "And listen to my heartbeat, the only friendly sound",
-    ]), (27, [
-        "He summons something ancient from the dark between the graves",
-        "With eyes like dying embers and a voice like ocean waves",
-        "It strikes and I feel colder, like a window left ajar",
-        "A thousand life points gone and I can't see a single star",
-        "He doesn't laugh, he doesn't smile, he only waits and stares",
-        "The ones he sent before me still are calling from somewhere",
-        "I hear them in the mist, a choir without breath",
-        "They sing about the shadow realm, a place that isn't death",
-        "It's worse than that, they tell me, it's forever and alone",
-        "A soul without a body in a world of grey and stone",
-        "I play my bravest pawn and he steps into the light",
-        "He's only six hundred but he's ready for the fight",
-        "He falls, and doesn't crumble into ash the way they do",
-        "He fades into the purple and I feel the cold come through",
-        "Eight thousand life points left, the turn count climbing high",
-        "I wonder if they'll miss me if I never say goodbye",
-        "I think about my mother calling me in for the night",
-        "I think about the porch light and I hold my cards up tight",
-    ]), (50, [
-        "The pendant pulls the warmth from me with every card I draw",
-        "The graveyard holds its breath and every shadow bares a claw",
-        "Four thousand life points, then three, then only two",
-        "And still a voice inside me tells me what I have to do",
-        "Believe in what you're holding, not in what he says you are",
-        "A soul is not a wager, it's a lantern, it's a star",
-        "I summon my last queen, the strongest card I own",
-        "She rises from the mist as if she's carved from moonlit bone",
-        "Twenty-five hundred strong, she doesn't bow her head",
-        "She stands between me and the place where wandering souls are led",
-        "He draws his final card, his face as pale as chalk",
-        "For the first time all night long he doesn't want to talk",
-        "The eye upon his pendant flickers like a dying flame",
-        "And somewhere in the dark I hear the shadows call his name",
-        "My queen attacks, the mist splits wide, the silence breaks in two",
-        "His life points fall to nothing and the cold goes rushing through",
-        "He reaches out to me but I can't reach him in time",
-        "The shadows pull him under and they leave the stones behind",
-    ]), (73, [
-        "The lanterns don't come back and the flowers turn to grey",
-        "Nobody tends the graveyard since he went away",
-        "I won, but winning feels like standing in the rain",
-        "A soul was still the price and someone paid it all the same",
-        "So if he ever asks you for a duel that's for real",
-        "Remember that the shadows never give back what they steal",
-        "Hold on to your soul. Whatever happens, hold on.",
+        "You walked into my graveyard with a deck and a grin",
+        "Now the lanterns going out and the shadows coming in",
+        "You said let's play for reals like it's recess at the park",
+        "Bitch, I been doing this since the pyramids were dark",
+        "~Twelve thousand life points and I'm counting every one",
+        "~Every point I take's a nail and the coffin's almost done",
+        "Children's card game? Yeah, that's what they all say",
+        "Right before the purple mist eats their ass away",
+        "You brought a pawn to a soul fight, that's adorable",
+        "Your future's looking short and the ending's horrible",
+        "~I got a pendant with an eye that never blinks",
+        "~It's staring at your soul and you know what it thinks",
+        "You fucked up, you fucked up, you challenged the king",
+        "Of the heart of the cards and every haunted thing",
+        "~Your mama can't save you, your king can't hear you scream",
+        "~This ain't Saturday cartoons, it's the shadow realm machine",
+        "Summon me a monster from the bottom of the pit",
+        "Twenty-five hundred attack and it's hungry as shit",
+        "~Your little rook in the dirt, he's laughing at you too",
+        "~He knew the deal was rotten, now the joke's on you",
+        "No forfeits, no take-backs, no rematch, no hope",
+        "You're dangling off a tombstone at the end of my rope",
+    ]), (29, [
+        "First you gonna die, kid, and that's the easy part",
+        "Then I fold your soul up small and lock it in my heart",
+        "~In the shadow realm there ain't no day or night",
+        "~Just a purple forever and no exit light",
+        "You'll be screaming for your mama in a voice that makes no sound",
+        "Floating in the dark with all the others I have found",
+        "~Eternity's a long time, let me break it down",
+        "~Count to forever twice and you still ain't leaving town",
+        "Your bishop's praying for you but there's nobody on the line",
+        "God don't play card games, kid, and the graveyard's mine",
+        "~I'll put your soul up on the shelf with all the rest",
+        "~Little glowing marbles, and I polish up the best",
+        "Pinch of ash in your pocket, throw it, see what it does",
+        "Not a goddamn thing, it's just who your buddy was",
+        "~Promotion ain't coming and your pawns ain't growing up",
+        "~Fifty-Move Rule? I'll be finished way before it's up",
+        "I'm the clown in the crypt with the spikiest hair",
+        "Every color of the nightmare and a thousand-yard stare",
+        "~Lay your monster down and I'll eat it like a snack",
+        "~Every card you summon, kid, it ain't never coming back",
+        "Life points dripping off you like a candle in the rain",
+        "Eight thousand, six thousand, you can feel the drain",
+    ]), (54, [
+        "The carnival is open and the rides are made of bones",
+        "The calliope is playing for the kids who left their homes",
+        "~Ferris wheel of faces going round and round",
+        "~All the fools who dueled me, never to be found",
+        "Step right up, step right up, put your soul on the plate",
+        "Win a stuffed animal? Nah. You win an awful fate",
+        "You can draw and you can pray and you can cry real hard",
+        "But the heart don't beat for a fraud with a card",
+        "~Your monster's in my grave and your spell got stopped",
+        "~Your little life bar's in the red and it dropped",
+        "Four thousand left, then two, then one",
+        "You can see the vortex spinning, kid, you're done",
+        "~I'll whisper your name till you don't know it's yours",
+        "~I'll lock you in a hallway with a million doors",
+        "Every door is open but they lead to the same place",
+        "A purple hall of nothing with my smile on its face",
+        "~No rescue, no sequel, no extra life",
+        "~No mommy in the morning, just the dark and the night",
+        "You challenged me to cards like it was all for fun",
+        "Now your soul's on the menu and the cooking's begun",
+        "~Ha ha ha, look at your face",
+        "~That's the look of a kid who just lost the whole race",
+    ]), (79, [
+        "I attack directly and your life points hit zero",
+        "There's no music for the loser and there ain't no hero",
+        "~Feel the tendrils grab you, feel them pull you down",
+        "~Your scream gets small until it doesn't make a sound",
+        "Your body's going cold on a grave beside the shed",
+        "Your soul's in my collection with the rest of the dead",
+        "~And it's gonna hurt forever, not a minute, not a year",
+        "~Every second you'll remember that you brought yourself here",
+        "You could have played chess, you could have stayed on the board",
+        "But you walked into my yard and you asked for my reward",
+        "~You fucked up, you fucked up, let the shadows say it twice",
+        "~Should have listened to the warning, should have taken the advice",
+        "Heart of the cards, heart of the dark",
+        "Your heart of the cards is a dead little spark",
+        "~This is the Shadow Carnival and the show is never through",
+        "~The tent is made of souls and the newest one is you",
+        "So shuffle up, kid, one last time for me",
+        "Welcome to forever. Welcome to eternity.",
     ])],
-    "spoken": [(24, "My move. I'm still here."),
-               (47, "I won't let go. Do you hear me? I won't let go."),
-               (70, "It's over. It's over now."),
-               (81, "The Weight of a Soul.")],
+    "spoken": [(27, "~Heh heh heh. Did you think the heart of the cards was on your side?"),
+               (52, "Look at me. Look at me. There's no hope. None."),
+               (77, "~Final turn. I'll let you draw. It won't matter."),
+               (98, "~Next.")],
 }
 
 
@@ -657,6 +684,19 @@ def square(m, dur):
     for n in (1, 3, 5, 7, 9):
         out += np.sin(2 * np.pi * f * n * t) / n
     return out * np.minimum(t / 0.005, 1) * np.exp(-t * 5) * 0.09
+
+
+def organ(notes, dur, wobble=6.0):
+    """A wheezy carnival calliope: stacked drawbars with a seasick tremolo."""
+    t = t_axis(dur)
+    out = np.zeros_like(t)
+    for m in notes:
+        f = hz(m) * (1 + 0.006 * np.sin(2 * np.pi * wobble * 0.5 * t))
+        ph = 2 * np.pi * np.cumsum(np.full_like(t, 1.0) * f) / SR
+        out += np.sin(ph) + 0.5 * np.sin(2 * ph) + 0.3 * np.sin(3 * ph) + 0.2 * np.sin(4 * ph)
+    trem = 0.75 + 0.25 * np.sin(2 * np.pi * wobble * t)
+    env = np.minimum(t / 0.02, 1.0) * np.clip((dur - t) / 0.05, 0, 1)
+    return out * trem * env * 0.05
 
 
 def bell(m, dur=2.5):
@@ -834,40 +874,42 @@ def beat_duel(song, total):
 
 def beat_reals(song, total):
     buf = np.zeros(int(total * SR))
-    orch = np.zeros_like(buf)
     bar_len = song["bar"]
     step = bar_len / 16
-    # D minor: Dm - Bb - Gm - A, a slow walk to the gallows
-    prog = [[50, 53, 57], [46, 50, 53], [43, 46, 50], [45, 49, 52]]
+    # A minor walking down chromatically: Am - Am/G# - Am/G - F#dim, the merry-go-round from hell
+    prog = [[45, 48, 52], [44, 48, 52], [43, 48, 52], [42, 45, 48]]
+    # the calliope's tune: a lopsided waltz-ish figure, (step, semitones above the root, length in steps)
+    tune = [(0, 12, 3), (3, 15, 1), (4, 19, 2), (6, 18, 2), (8, 15, 3), (11, 12, 1), (12, 11, 2), (14, 12, 2)]
+    breaks = {26, 27, 28, 51, 52, 53, 76, 77, 78}
     for bar in range(song["bars"]):
         t0 = bar * bar_len
-        chord = prog[(bar // 2) % 4]
-        rising = 50 <= bar < 70
-        if bar % 2 == 0:
-            place(orch, pad([n - 12 for n in chord] + [chord[0]], bar_len * 2, bright=0.45), t0)
-            if bar >= 12:
-                place(orch, choir([n + 12 for n in chord], bar_len * 2) * (1.4 if rising else 1.0), t0)
-        if bar % 4 == 0:
-            place(orch, bell(38, bar_len * 1.5), t0)  # the graveyard bell tolls
-        if bar >= 27:
-            for k in range(0, 16, 4):
-                place(orch, pluck(chord[(k // 4) % 3], 0.5) * 0.6, t0 + k * step)
-        if rising:
-            loud = min(1.0, 0.4 + (bar - 50) * 0.05)
-            place(orch, brass(chord[0], bar_len * 0.9, loud), t0)
-            place(orch, brass(chord[2] - 12, bar_len * 0.9, loud * 0.7), t0)
-            for k in (0, 6, 10, 12):
-                place(orch, timpani(chord[0], 0.9) * 0.7, t0 + k * step)
-        if bar < 4 or bar >= 80:
+        chord = prog[bar % 4]
+        root = chord[0]
+        # music box twinkling on top the whole way through
+        for k in (0, 5, 10):
+            place(buf, bell(chord[(k // 5) % 3] + 36, bar_len * 0.6) * 0.35, t0 + k * step)
+        if bar < 4 or bar in breaks:
+            place(buf, organ([n + 12 for n in chord], bar_len * 0.95) * 0.8, t0)
+            if bar in breaks:
+                place(buf, kick(punch=70, decay=5) * 0.8, t0)
             continue
-        # a heartbeat: lub-dub, once a bar, quickening when the queen rises
-        beats = (0, 8) if rising else (0,)
-        for k in beats:
-            place(buf, kick(punch=60, decay=6) * 0.9, t0 + k * step)
-            place(buf, kick(punch=50, decay=8) * 0.6, t0 + (k + 1.2) * step)
-    wind = np.convolve(rng.standard_normal(len(buf)), np.ones(200) / 200, "same") * 0.25
-    wind *= 0.6 + 0.4 * np.sin(2 * np.pi * np.arange(len(buf)) / SR / 11.0)
-    return buf + reverb(orch, 3.0, 0.45) + wind
+        if bar >= 98:
+            continue
+        for s0, semi, ln in tune:
+            place(buf, organ([root + semi + 12], step * ln * 0.9), t0 + s0 * step)
+        place(buf, keys([n - 12 for n in chord], bar_len * 0.5) * 1.5, t0)
+        # a filthy, clipped 808 under everything
+        place(buf, np.tanh(bass808(root, bar_len * 0.45) * 4) * 0.45, t0)
+        place(buf, np.tanh(bass808(root, bar_len * 0.2) * 4) * 0.4, t0 + step * 7)
+        place(buf, np.tanh(bass808(root + 1, bar_len * 0.2) * 4) * 0.4, t0 + step * 10)
+        for k in (0, 3, 10):
+            place(buf, kick(punch=130, decay=8), t0 + k * step)
+        for k in (4, 12):
+            place(buf, snare(tone=170, length=0.3) * 1.1, t0 + k * step)
+            place(buf, clap() * 0.7, t0 + k * step)
+        for k in range(0, 16, 2):
+            place(buf, hat(open_=(k == 14)) * 0.8, t0 + k * step)
+    return buf
 
 
 SONGS = {
@@ -880,8 +922,10 @@ SONGS = {
     # Little Pip: the slt voice sped up into a child's register
     "duel": {"title": "It's Time to Duel in the Graveyard", "artist": "Little Pip", "lyrics": DUEL,
              "bpm": 96, "bars": 120, "voice": "slt", "pitch": 1.46, "echo": False, "beat": beat_duel, "vox": 0.6, "beat_gain": 0.55},
-    "reals": {"title": "The Weight of a Soul", "artist": "Little Pip", "lyrics": REALS,
-              "bpm": 66, "bars": 83, "voice": "slt", "pitch": 1.42, "echo": True, "beat": beat_reals, "vox": 0.6, "beat_gain": 0.5},
+    # Yugi: a growling, sped-down voice; Yami ("~" lines) deeper still, with a cave echo
+    "reals": {"title": "Shadow Carnival", "artist": "Yugi Moto", "lyrics": REALS,
+              "bpm": 80, "bars": 101, "voice": "rms", "pitch": 0.92, "echo": False, "beat": beat_reals, "vox": 0.66, "beat_gain": 0.5,
+              "alt": {"voice": "awb", "pitch": 0.8, "echo": True}},
 }
 
 
@@ -913,6 +957,9 @@ def read_wav(path):
 
 
 def sing(song, text, slot, tmp):
+    if text.startswith("~"):
+        song = dict(song, **song["alt"])
+        text = text[1:]
     spoken = text
     for k, v in SPOKEN.items():
         spoken = spoken.replace(k, v)
@@ -953,7 +1000,7 @@ def render(sid):
             v = sing(song, text, slot, tmp)
             place(vox, v, start)
             place(vox, v * 0.25, start + 0.022)
-            timings.append((start, start + len(v) / SR, text))
+            timings.append((start, start + len(v) / SR, text.lstrip("~")))
     mix += vox
     mix *= np.clip((total - np.arange(len(mix)) / SR) / 1.5, 0, 1)
     mix = np.tanh(mix * 1.1)

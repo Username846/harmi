@@ -2,7 +2,7 @@ class_name SongTicker
 extends Control
 ## A song strip along the top of the screen: the line being sung, with the next
 ## line faded beneath it. On the title screen it plays the three-song album in
-## turn (tap NEXT to skip); a duel sets `playlist` to its one theme, which loops.
+## turn (tap NEXT to skip); a graveyard duel sets `playlist` to its own theme, which loops.
 ## Tap the strip to mute or unmute.
 
 const SONGS := [

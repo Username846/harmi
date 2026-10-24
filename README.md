@@ -38,10 +38,10 @@ Off the board, your pieces have lives of their own:
   with brass in the second half) and "Back Rank Bounce" (Queen Cushy, dembow bounce). The line being sung
   shows across the top of the title screen with the next one faded beneath it. Tap the strip to mute,
   tap NEXT to skip.
-* **Duel themes**: graveyard card duels have their own five-minute songs, sung by a child, Little Pip,
-  with the lyrics along the top: the cheerful "It's Time to Duel in the Graveyard" for ordinary duels,
-  and "The Weight of a Soul", a slow, grave ballad about a duel where the loser loses their soul, for
-  duels For Reals.
+* **Duel themes**: graveyard card duels have their own five-minute songs, with the lyrics along the top.
+  Ordinary duels get "It's Time to Duel in the Graveyard", sung by a child, Little Pip. Duels For Reals
+  get "Shadow Carnival", dark-carnival horrorcore from Yugi himself (and his darker half, Yami) about
+  how completely screwed you are for challenging him to a children's card game.
 * **Music**: the volume control is a **Beyblade**. Pull its rip cord harder and the bassline (a top
   bouncing down an oak staircase) plays louder and longer. Pull too hard and it snaps off and crashes
   into the board, knocking pieces around and over.

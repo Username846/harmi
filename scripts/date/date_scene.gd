@@ -212,7 +212,11 @@ func _draw_piece() -> void:
 	if hop_t >= 0.0:
 		sy += 0.05 * sin(hop_t * PI * 5.0) * (1.0 - hop_t)
 	draw_set_transform(base, rot, Vector2(1.0 / sqrt(sy), sy))
-	PieceArt.draw_piece(self, piece_type, piece_white, 0.0, 0.0, s)
+	if piece_type == ChessRules.QUEEN:
+		# Queen Cushy never stops moving: the booty keeps the beat
+		PieceArt.draw_curvy_queen(self, piece_white, 0.0, 0.0, s, false, sin(_t * 6.0), 0.02 * sin(_t * 3.0))
+	else:
+		PieceArt.draw_piece(self, piece_type, piece_white, 0.0, 0.0, s)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 

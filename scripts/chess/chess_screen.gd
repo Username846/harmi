@@ -15,6 +15,9 @@ const BIRTH_CHANCE := 0.4 # per turn, once a piece's affection is full
 const ARM_SOUND := preload("res://assets/audio/arm.wav")
 const SHORT_REASON := {"is away on a job": "away", "is knocked over": "knocked over", "has no car": "no car"}
 
+## Tests switch the queen's victory twerk off so captures stay instant.
+var twerk_cutscenes := true
+var _twerks: Array = []
 var rules := ChessRules.new()
 var ai := ChessAI.new()
 var board: BoardView
@@ -239,6 +242,11 @@ func _title(s: int) -> String:
 # --- turn flow ----------------------------------------------------------------
 
 func _start_turn() -> void:
+	if not _twerks.is_empty():
+		var g := _gen
+		await _play_twerks()
+		if not _alive(g):
+			return
 	board.selected = -1
 	board.targets = {}
 	move_targets = {}
@@ -539,11 +547,41 @@ func _on_piece_fallen(code: int, pid: int, s: int, capturer: int = -1) -> void:
 	Game.bury(color, code & 7, pid)
 	if capturer >= 0:
 		_admire(capturer, s)
+		var qs := _square_of(capturer)
+		if qs >= 0 and (rules.board[qs] & 7) == ChessRules.QUEEN and twerk_cutscenes:
+			_twerks.append({"queen_white": ChessRules.color_of(rules.board[qs]) == ChessRules.WHITE,
+				"victim_type": code & 7, "victim_white": color == ChessRules.WHITE})
 	if (code & 7) != ChessRules.KING:
 		_witness(color, s, 6.0)
 	if _is_human(color):
 		Game.stats["lost"] = int(Game.stats.get("lost", 0)) + 1
 	_refresh_hud()
+
+
+func _square_of(pid: int) -> int:
+	for sq in 64:
+		if rules.board[sq] != 0 and rules.ids[sq] == pid:
+			return sq
+	return -1
+
+
+## Every queen capture ends with her twerking on the grave; the cutscenes play
+## before the next turn begins.
+func _play_twerks() -> void:
+	var prev := state
+	state = "cutscene"
+	board.interactive = false
+	while not _twerks.is_empty():
+		var info: Dictionary = _twerks.pop_front()
+		var cut := TwerkCutscene.new()
+		cut.setup(info)
+		add_child(cut)
+		_log("[color=#f07ab8]The %s Queen twerks on the %s %s's grave.[/color]" % ["White" if info["queen_white"] else "Black", "White" if info["victim_white"] else "Black", Game.PIECE_NAMES[info["victim_type"]]])
+		await cut.finished
+		if not is_inside_tree():
+			return
+	if state == "cutscene":
+		state = prev
 
 
 ## Everyone on `color`'s side who saw a comrade fall feels worse; those

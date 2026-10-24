@@ -239,7 +239,7 @@ func _show_venues() -> void:
 	footer.add_child(_btn("Never mind", _on_cancel))
 	go_button = _btn("Let's go!", _on_go)
 	footer.add_child(go_button)
-	scene.say(DateData.greeting(start_mood, own))
+	scene.say(DateData.greeting(start_mood, own, date_type))
 	_select_venue("park", false)
 
 
@@ -349,7 +349,7 @@ func _start_date(v: Dictionary) -> void:
 	var price: int = v["price"]
 	if price > 0:
 		_note("You pay $%d. Your purse: $%d." % [price, Game.money])
-	_say(DateData.opener(start_mood, own, rng))
+	_say(DateData.opener(start_mood, own, rng, date_type))
 	_set_continue("Continue", _venue_beat)
 
 

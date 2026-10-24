@@ -172,6 +172,26 @@ func _ready() -> void:
 	cs.resolve_encounter("won")
 	_check(Game.yugi_banished and r.board[0] == ChessRules.ROOK, "won for reals: Yugi banished and the rook revived")
 	await get_tree().create_timer(1.5).timeout
+	# a queen capture queues her victory twerk; it plays before the next turn
+	r.load_fen("4k3/8/3b4/8/8/8/3Q4/4K3 w - -")
+	cs._twerks.clear()
+	var qid := r.ids[ChessRules.square_from_name("d2")]
+	cs._on_piece_fallen(r.board[ChessRules.square_from_name("d6")], r.ids[ChessRules.square_from_name("d6")], ChessRules.square_from_name("d6"), r.ids[ChessRules.square_from_name("e1")])
+	_check(cs._twerks.is_empty(), "the king doesn't twerk")
+	cs._on_piece_fallen(r.board[ChessRules.square_from_name("d6")], r.ids[ChessRules.square_from_name("d6")], ChessRules.square_from_name("d6"), qid)
+	_check(cs._twerks.size() == 1 and cs._twerks[0]["victim_type"] == ChessRules.BISHOP and cs._twerks[0]["queen_white"], "queen capture queues a twerk")
+	cs.state = "busy"
+	cs._start_turn()
+	await get_tree().process_frame
+	var cut: Node = null
+	for ch in cs.get_children():
+		if ch is TwerkCutscene:
+			cut = ch
+	_check(cut != null and cs.state == "cutscene", "twerk cutscene plays before the turn")
+	if cut != null:
+		await cut.finished
+	await get_tree().process_frame
+	_check(cs._twerks.is_empty() and cs.state != "cutscene", "turn resumes after the twerk")
 	# stepping on the bomb ends the chess game
 	var boom := {}
 	cs.nuked.connect(func(info: Dictionary): boom.merge(info))

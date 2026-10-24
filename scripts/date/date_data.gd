@@ -53,10 +53,10 @@ const PREFS := {
 		"cruise": [-4, "I am made of stone. Stone and boats have a long and tragic history."],
 	},
 	5: {
-		"park": [-6, "A blanket. On the grass. For a queen. ...Bold choice."],
-		"bowling": [-2, "I could knock all ten down from anywhere on the lane. Where is the challenge?"],
-		"dinner": [6, "Candles, crystal, a single rose. Adequate. This is the minimum, and you met it."],
-		"cruise": [1, "A sunset cruise. At least you know how to set a scene."],
+		"park": [-6, "A blanket? On the GRASS? Honey, this tushy is too cushy for twigs. ...Fine. Fan me."],
+		"bowling": [6, "Date night at the alley! Watch me bowl a perfect strike. Then watch me bend down for the next ball. Take your time, baby."],
+		"dinner": [6, "Velvet chairs, candles, a single rose. Hold my lip gloss, baby. A queen deserves the best."],
+		"cruise": [1, "A sunset cruise? Rock the boat, honey. Gently. I bounce."],
 	},
 	6: {
 		"park": [-4, "We're out in the open. Anyone could check me here. ANYONE. Is that bush looking at me?"],
@@ -199,35 +199,35 @@ const PROMPTS := {
 			]},
 	],
 	5: [
-		{"q": "I can move in any direction, any distance. Most pieces find that intimidating. Do you?",
+		{"q": "I move in any direction, baby. Straight lines, diagonals... Go on. Ask me how.",
 			"a": [
-				["Not intimidated. Impressed. I'd rather walk beside you than behind you.", 2, "Beside me. Hm. That's a rare square to stand on. You may keep it."],
-				["A little, honestly.", 1, "Honest, at least. Honesty I can work with."],
-				["Not at all. I could take you.", -1, "Darling, I take eight pieces before breakfast. Sit down."],
+				["How? Show me. Slowly. I've got all night and the whole board.", 2, "Patience AND an appetite? Queen to h-five, baby. That's a situation."],
+				["Uh... diagonally?", 1, "Cute. Diagonally works. For starters."],
+				["I already know how the queen moves. I read the rules.", -1, "The RULES? Honey, nobody reads the rules to a queen. Ask me, don't recite me."],
 			]},
-		{"q": "Everyone expects me to protect the king. Do you ever think HE should protect ME, for once?",
+		{"q": "My tushy is so cushy. Be honest. Was it the first thing you noticed?",
 			"a": [
-				["Absolutely. You do all the work, he shuffles one square and gets all the credit.", 2, "THANK you. ONE square! He moves ONE square and they call it the King's game!"],
-				["Maybe you should protect each other.", 1, "A partnership. Novel. I'll raise it at the next council."],
-				["Well, that's sort of your job.", -1, "My job. Is it. How fascinating. Do go on. No. Don't."],
+				["Second. The crown came first. Then I couldn't look anywhere else.", 2, "Crown first, cushy second. Smart AND honest. Scoot over to my side of the table."],
+				["I'm a gentleman. I was looking at your eyes.", 1, "Liar. A sweet liar, though. I'll allow it."],
+				["What tushy? You're a chess piece.", -1, "A chess piece with a back rank, honey. And you just lost your view of it."],
 			]},
-		{"q": "Let me ask you something. If you were ordering for me, what would you order?",
+		{"q": "I make my pieces do the work while I'm in the back and twerk. Does that make me lazy?",
 			"a": [
-				["Nothing. You'll order for yourself, and I'll ask what you recommend.", 2, "Correct answer. The salmon. You'll love it."],
-				["Whatever's most expensive on the menu?", 1, "Flattery and reckless spending. A dangerous combination. I approve."],
-				["I already ordered us both the soup.", -1, "You ordered. For me. The soup. The soup may stay. You are on thin ice."],
+				["Lazy? That's delegation. You're a CEO with a bounce.", 2, "A CEO with a bounce! Put that on my business cards. And my tombstone."],
+				["Maybe a little. But it looks like fun.", 1, "It IS fun. You should see it from the front row."],
+				["Yes. Your pawns deserve better.", -1, "My pawns kiss my feet and LOVE it. Go cry to the king about it."],
 			]},
-		{"q": "I started out as a pawn, you know. Promoted on the eighth rank. Does that surprise you?",
+		{"q": "The king wrote me a poem. It was mostly about check. Whisper me something sweet. In algebraic notation.",
 			"a": [
-				["Not a bit. You earned every point of that crown.", 2, "Every point. All nine of them. You understand ambition. Rare."],
-				["A little! You hide it well.", 1, "I hide nothing. I simply outgrew it."],
-				["So you're basically a pawn in a fancy hat?", -1, "A pawn in a fancy hat could still end your evening, dear."],
+				["Queen takes my heart. Checkmate. No take-backs.", 2, "Ohh. That one went straight under my crown. Say it again, slower."],
+				["E4?", 1, "A bold opening. Basic, but bold. I've had worse."],
+				["Pawn to e-three.", -1, "E-three? ONE square? Are you the king? Is that you hiding under the bed?"],
 			]},
-		{"q": "People say I'm bossy. I say I'm decisive. Do you like being told what to do?",
+		{"q": "Rooks only move in straight lines and bishops are way too pointy. What kind of piece are YOU, baby?",
 			"a": [
-				["Not really. But I'd love to hear your plans and argue about them.", 2, "An equal who argues back. Do you know how long I've waited for that?"],
-				["Depends who's doing the telling.", 1, "Diplomatic. You'd make a decent bishop."],
-				["Sure! Just tell me where to stand and I'll stand there.", -1, "I have sixteen pieces who do that already. Try harder."],
+				["The kind that follows your curves. Any direction you want.", 2, "Any direction? Ooh, you're dangerous. I like a piece who can keep up."],
+				["The loyal kind. I'll stick around.", 1, "Loyal is sweet. A little boring, like the king. But sweet."],
+				["Honestly, I'm more of a bishop guy.", -1, "A bishop guy. On a date with ME. Go slide off somewhere diagonal."],
 			]},
 	],
 	6: [
@@ -340,6 +340,22 @@ const ENEMY_TAILS := {
 	],
 }
 
+## Queen Cushy doesn't do gloomy: she has her own lines, whatever her mood.
+const QUEEN_GREETING := {
+	"own": "Hey. It's your queen. A date? Take me somewhere fancy, honey. The tushy has standards.",
+	"enemy": "A date with the other side's queen? Black side, white side, I don't really mind. Where are we going, tall stuff?",
+}
+const QUEEN_OPENERS := [
+	"Hey boys, hey board, the queen just walked in. Glitter on my crown, smirk upon my chin. You may begin.",
+	"Mood is elated, never gloomy in the rain. Now pull my chair out. Slowly. Let them all look.",
+	"Every square I visit is a party just for me. Tonight the party's at your table. Lucky you.",
+	"Elongated legs and an elongated smile, baby. Try to keep up.",
+]
+const QUEEN_ENEMY_OPENERS := [
+	"Wrong side of the board, honey? I don't mind. As long as you are tall and you're treating me kind.",
+	"If my king asks, this is reconnaissance. Very bouncy reconnaissance. He's hiding under the bed anyway.",
+]
+
 ## What the date says while you pick a venue.
 const GREETINGS := {
 	"hollow": "...A date? With me? Somewhere quiet, I suppose. If anywhere.",
@@ -354,7 +370,7 @@ const CLOSE_GREAT := {
 	2: "I shall gallop home in an L-shape of pure joy. Two squares of joy, then one more!",
 	3: "I'll light a candle for this evening. A black one. That's a compliment.",
 	4: "Same time next week? I'll keep the corner warm and the drawbridge down.",
-	5: "You may call on me again. That's not a request. It's a decree.",
+	5: "Call me again, baby. Next time bring roses, a Used Car and a little purple bike. I'll bring the bounce.",
 	6: "For one whole evening, I wasn't in check. Not once. Thank you.",
 }
 const CLOSE_BAD := {
@@ -362,7 +378,7 @@ const CLOSE_BAD := {
 	2: "I shall retreat now. Two squares back, one to the side, and out of your life.",
 	3: "I shall pray for you. And not in the nice way.",
 	4: "I'm going back to my corner. Don't follow me in a straight line.",
-	5: "This audience is over.",
+	5: "Give me back my lip gloss. This audience is over. Watch me walk away, it's the best part of your night.",
 	6: "Take me home. Take me home NOW. By the safest possible route.",
 }
 const CLOSE_GOOD := [
@@ -451,13 +467,17 @@ static func shuffled_replies(prompt: Dictionary, rng: RandomNumberGenerator) -> 
 	return shuffled(prompt["a"], rng)
 
 
-static func greeting(mood: float, own: bool) -> String:
+static func greeting(mood: float, own: bool, t: int = 0) -> String:
+	if t == 5:
+		return String(QUEEN_GREETING["own" if own else "enemy"])
 	if not own:
 		return String(GREETINGS["enemy"])
 	return String(GREETINGS[mood_band(mood)])
 
 
-static func opener(mood: float, own: bool, rng: RandomNumberGenerator) -> String:
+static func opener(mood: float, own: bool, rng: RandomNumberGenerator, t: int = 0) -> String:
+	if t == 5:
+		return String(_pick(QUEEN_OPENERS if own else QUEEN_ENEMY_OPENERS, rng))
 	if not own:
 		var tails: Array = ENEMY_TAILS["low"] if mood < GLOOMY_BELOW else ENEMY_TAILS["high"]
 		return ENEMY_OPENER + " " + String(_pick(tails, rng))

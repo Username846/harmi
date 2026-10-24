@@ -15,6 +15,7 @@ Odd jobs, captures and pink slips earn money. The [b]Shop[/b] sells goods, some 
 
 [color=#e0aa4a][b]Moods[/b][/color]
 Every piece has a mood. It sinks whenever a piece sees its comrades turn to ash or lose their cars, especially nearby. Gloomy pieces fight worse in duels, earn less, race worse, and get rain clouds. The darker an enemy's mood, the [b]darker its labyrinth[/b] when you capture it: your light follows your pointer or your last tap. Dates and roses restore moods.
+The [b]Queen[/b] has a reputation: every time she takes a piece, by any means, she climbs onto its grave and does a [b]victory twerk[/b] (tap to skip). Take her on a date and she'll show you why they call her Queen Cushy.
 
 [color=#e0aa4a][b]Affection and Babies[/b][/color]
 Every piece also has an [b]affection meter[/b] (see Inspect). Dates fill it, and so does watching a friend nearby capture an enemy: the onlooker gets a crush on the hero. When the meter is full a heart floats over the piece, and at the start of your turn it may have a [b]baby piece[/b] with its crush on a free square beside them.

@@ -130,6 +130,13 @@ func _debug_screen() -> void:
 		"town": String(dbg.get("town", "Ashenford")).uri_decode().replace("_", " "),
 	}
 	Game.set_mood(info["date_id"], info["date_mood"])
+	if dbg["screen"] == "twerk":
+		# ?screen=twerk&foe=3&own=1: the queen's victory twerk on a bishop's grave
+		var cut := TwerkCutscene.new()
+		cut.setup({"queen_white": not own, "victim_type": int(dbg.get("foe", "3")), "victim_white": own})
+		cut.finished.connect(show_title)
+		layer.add_child(cut)
+		return
 	var script: GDScript = load(SCREEN_SCRIPTS.get(dbg["screen"], SCREEN_SCRIPTS["race"]))
 	encounter = script.new()
 	encounter.call("setup", info)

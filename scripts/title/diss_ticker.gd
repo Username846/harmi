@@ -40,9 +40,10 @@ func _gui_input(event: InputEvent) -> void:
 func _process(delta: float) -> void:
 	_t += delta
 	# step aside while the Beyblade is spinning its own bassline
-	var want_paused := muted or Music.spinning
-	if player.stream_paused != want_paused:
-		player.stream_paused = want_paused
+	# mute by volume, never by pausing: the track keeps its place, so the lyrics stay in step
+	var want_db := -80.0 if muted or Music.spinning else -2.0
+	if player.volume_db != want_db:
+		player.volume_db = want_db
 	queue_redraw()
 
 
@@ -60,6 +61,12 @@ func _line(font: Font, text: String, cx: float, y: float, fs: int, room: float, 
 	draw_string(font, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size_px, Color(UI.GOLD.r, UI.GOLD.g, UI.GOLD.b, alpha))
 
 
+## Where the song is right now, as heard: the mixer's position plus the time
+## since it last mixed, minus the delay before sound reaches the speakers.
+func _pos() -> float:
+	return maxf(0.0, player.get_playback_position() + AudioServer.get_time_since_last_mix() - AudioServer.get_output_latency())
+
+
 func _draw() -> void:
 	var font := ThemeDB.fallback_font
 	var w := size.x
@@ -73,7 +80,7 @@ func _draw() -> void:
 		notice = "Diss track muted - tap here to bring it back"
 	elif Music.spinning:
 		notice = "The Beyblade has the floor. The diss track waits its turn."
-	elif not player.playing or player.get_playback_position() < 0.05:
+	elif not player.playing or _pos() < 0.05:
 		notice = "Tap anywhere to drop the beat"
 	var cx := label_w + (w - label_w) * 0.5
 	var room := w - label_w - 24.0
@@ -81,7 +88,7 @@ func _draw() -> void:
 		_line(font, notice, cx, STRIP_H * 0.5 + 8.0, fs, room, 1.0)
 	else:
 		# two fixed lines: what's being rapped now, and what's coming next
-		var pos := player.get_playback_position()
+		var pos := _pos()
 		var lines: Array = LYRICS.LINES
 		var cur := -1
 		for i in lines.size():
@@ -98,7 +105,7 @@ func _draw() -> void:
 	if label_w > 0.0:
 		# a fixed "now playing" tag the lyrics slide under
 		draw_rect(Rect2(Vector2.ZERO, Vector2(label_w, STRIP_H)), Color(0.12, 0.05, 0.05))
-		var beat := 0.5 + 0.5 * absf(sin(player.get_playback_position() * PI * 1.5)) if player.playing and not player.stream_paused else 0.5
+		var beat := 0.5 + 0.5 * absf(sin(_pos() * PI * 1.5)) if player.playing and not muted else 0.5
 		draw_circle(Vector2(14, STRIP_H * 0.5 - 4.0), 5.0, UI.RED.lerp(Color(1, 0.6, 0.5), beat))
 		draw_string(font, Vector2(26, 27), "NOW PLAYING", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, UI.DIM)
 		draw_string(font, Vector2(26, 45), "Long Boy Diss", HORIZONTAL_ALIGNMENT_LEFT, label_w - 30.0, 14, UI.TEXT)

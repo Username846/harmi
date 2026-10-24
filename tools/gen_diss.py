@@ -268,6 +268,10 @@ def rap(text, slot, tmp):
                     "asetrate=14400,aresample=%d,atempo=%.4f,highpass=f=90" % (SR, tempo), out], check=True)
     v = read_wav(out)
     v = v / max(1e-6, np.max(np.abs(v)))
+    # trim the synthesizer's silence so the line's start time is the first syllable
+    loud = np.nonzero(np.abs(v) > 0.04)[0]
+    if len(loud):
+        v = v[max(0, loud[0] - int(0.01 * SR)): loud[-1] + int(0.05 * SR)]
     return np.tanh(v * 2.2) * 0.6
 
 

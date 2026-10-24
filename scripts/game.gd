@@ -125,6 +125,11 @@ var difficulty := 1
 var counters: Dictionary = {}
 var stats: Dictionary = {}
 var next_piece_id := 200
+# --- the graveyard after Yugi (see GRAVE_SECTIONS) ---
+var yugi_banished := false # Yugi lost a duel "for reals" and is in the shadow realm
+var grave_repairs: Dictionary = {} # section id -> true once repaired
+var gravekeeper := -1 # colour of the side that restored the graveyard, or -1
+var keeper_cooldown := 0 # the keeper's turns until the next free raising
 
 var inventory: Dictionary:
 	get:
@@ -158,6 +163,10 @@ func new_game() -> void:
 	piece_buffs.clear()
 	counters.clear()
 	next_piece_id = 200
+	yugi_banished = false
+	grave_repairs = {}
+	gravekeeper = -1
+	keeper_cooldown = 0
 	stats = {"puzzles": 0, "fights": 0, "captures": 0, "lost": 0, "earned": 0}
 	for side in 2:
 		active_side = side
@@ -359,6 +368,68 @@ func gloom_for(m: float) -> float:
 
 func bury(color: int, t: int, pid: int) -> void:
 	graveyard[color].append({"type": t, "id": pid})
+
+
+## The ruined graveyard's sections, repaired with money and items after Yugi is banished.
+const GRAVE_SECTIONS := [
+	{"id": "gate", "name": "The Rusted Gate", "desc": "Hanging off one hinge and screaming in the wind.", "money": 15, "items": {"whetstone": 1}},
+	{"id": "stones", "name": "The Shattered Headstones", "desc": "Cracked in half. Somebody's name is just '...ight'.", "money": 20, "items": {"ash": 2, "pet_rock": 1}},
+	{"id": "flowers", "name": "The Dead Flower Beds", "desc": "Nothing grows here but despair and one stubborn weed.", "money": 5, "items": {"roses": 1}},
+	{"id": "crypt", "name": "The Flooded Crypt", "desc": "Ankle-deep black water. Something is floating in it.", "money": 10, "items": {"spoon": 1}},
+	{"id": "lanterns", "name": "The Broken Lanterns", "desc": "Every lantern smashed. It is very, very dark.", "money": 15, "items": {"ash": 1}},
+	{"id": "shed", "name": "The Keeper's Shed", "desc": "Yugi's old card table, a cold kettle and an empty chair.", "money": 30, "items": {"gourd": 1}},
+]
+const KEEPER_COOLDOWN := 5
+
+
+func section_cost_text(sec: Dictionary) -> String:
+	var parts: Array = ["$%d" % int(sec["money"])]
+	var items: Dictionary = sec["items"]
+	for id in items:
+		parts.append("%d x %s" % [int(items[id]), item_name(id)])
+	return ", ".join(parts)
+
+
+## Can the active side afford this section's repair right now?
+func can_repair(sec_id: String) -> bool:
+	var sec := _section(sec_id)
+	if sec.is_empty() or grave_repairs.has(sec_id) or not yugi_banished:
+		return false
+	if money < int(sec["money"]):
+		return false
+	var items: Dictionary = sec["items"]
+	for id in items:
+		if count(id) < int(items[id]):
+			return false
+	return true
+
+
+## Pays for and repairs a section. Returns true when it worked; crowns the
+## active side as gravekeeper when it was the last one.
+func repair(sec_id: String) -> bool:
+	if not can_repair(sec_id):
+		return false
+	var sec := _section(sec_id)
+	spend(int(sec["money"]))
+	var items: Dictionary = sec["items"]
+	for id in items:
+		remove_item(id, int(items[id]))
+	grave_repairs[sec_id] = true
+	if graveyard_restored() and gravekeeper < 0:
+		gravekeeper = active_side
+		keeper_cooldown = 0
+	return true
+
+
+func graveyard_restored() -> bool:
+	return grave_repairs.size() >= GRAVE_SECTIONS.size()
+
+
+func _section(sec_id: String) -> Dictionary:
+	for sec in GRAVE_SECTIONS:
+		if sec["id"] == sec_id:
+			return sec
+	return {}
 
 
 func new_piece_id() -> int:

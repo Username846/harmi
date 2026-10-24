@@ -77,6 +77,15 @@ func _debug_encounter() -> void:
 	if dbg.has("fight"):
 		info["kind"] = "final" if int(dbg["fight"]) == 6 else "fight"
 		info["foe_type"] = int(dbg["fight"])
+		# &party=2,3&foes=1,1 adds allies and enemies for a team battle
+		for key in ["party", "foes"]:
+			var members: Array = []
+			var k := 0
+			for t in String(dbg.get(key, "")).split(",", false):
+				k += 1
+				members.append({"type": int(t), "color": 0 if key == "party" else 1, "id": (300 if key == "party" else 400) + k,
+					"mood": float(dbg.get("hmood" if key == "party" else "fmood", "72")), "buffs": []})
+			info["hero_party" if key == "party" else "foe_party"] = members
 		encounter = BattleScreen.new()
 		encounter.setup(info)
 	else:
@@ -97,6 +106,7 @@ const SCREEN_SCRIPTS := {
 	"date": "res://scripts/date/date_screen.gd",
 	"cards": "res://scripts/cards/card_duel_screen.gd",
 	"survival": "res://scripts/survival/survival_screen.gd",
+	"shadow": "res://scripts/cards/shadow_realm_screen.gd",
 }
 
 
@@ -116,7 +126,7 @@ func _debug_screen() -> void:
 		"foe_type": int(dbg.get("foe", "4")), "foe_color": 1, "foe_id": 56, "foe_mood": float(dbg.get("fmood", "72")),
 		"date_type": int(dbg.get("foe", "4")), "date_color": 0 if own else 1, "date_id": 0 if own else 56,
 		"date_mood": float(dbg.get("fmood", "40")), "own": own,
-		"player_color": 0, "wager_type": int(dbg.get("foe", "4")),
+		"player_color": 0, "wager_type": int(dbg.get("foe", "4")), "for_reals": dbg.get("reals", "0") == "1",
 		"town": String(dbg.get("town", "Ashenford")).uri_decode().replace("_", " "),
 	}
 	Game.set_mood(info["date_id"], info["date_mood"])

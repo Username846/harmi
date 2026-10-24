@@ -283,7 +283,8 @@ func spend(n: int) -> bool:
 
 func piece(pid: int) -> Dictionary:
 	if not pieces.has(pid):
-		pieces[pid] = {"mood": START_MOOD, "car": true, "away": 0, "job": "", "pay": 0, "toppled": 0}
+		pieces[pid] = {"mood": START_MOOD, "car": true, "away": 0, "job": "", "pay": 0, "toppled": 0,
+			"affection": 0.0, "crush": -1, "baby": false}
 	return pieces[pid]
 
 
@@ -302,6 +303,20 @@ func change_mood(pid: int, delta: float) -> float:
 	p["mood"] = clampf(float(p["mood"]) + delta, 0.0, 100.0)
 	pieces_changed.emit()
 	return float(p["mood"])
+
+
+## Affection (0-100) fills when a piece is dated or watches a comrade make a
+## capture nearby; "crush" is the piece it has its eye on. Full meters make babies.
+func affection_of(pid: int) -> float:
+	return float(piece(pid).get("affection", 0.0))
+
+
+func add_affection(pid: int, amount: float, crush: int = -1) -> void:
+	var p := piece(pid)
+	p["affection"] = clampf(float(p.get("affection", 0.0)) + amount, 0.0, 100.0)
+	if crush >= 0:
+		p["crush"] = crush
+	pieces_changed.emit()
 
 
 func has_car(pid: int) -> bool:

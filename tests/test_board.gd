@@ -121,6 +121,57 @@ func _ready() -> void:
 		_check(int(o["pay"]) >= 0 and float(o["mood"]) > -30.0, "job outcome sane")
 	await get_tree().create_timer(1.6).timeout
 	_check(r.side == ChessRules.BLACK, "the card duel used White's turn")
+	# affection: comrades who watch a capture nearby fall for the capturer
+	r.load_fen("4k3/8/8/3p4/4P3/3P4/8/4K3 w - -")
+	cs.bomb_sq = -1
+	var hero_id := r.ids[ChessRules.square_from_name("e4")]
+	var fan := r.ids[ChessRules.square_from_name("d3")]
+	var before_aff := Game.affection_of(fan)
+	cs._on_piece_fallen(r.board[ChessRules.square_from_name("d5")], r.ids[ChessRules.square_from_name("d5")], ChessRules.square_from_name("d5"), hero_id)
+	_check(Game.affection_of(fan) > before_aff and int(Game.piece(fan)["crush"]) == hero_id, "a nearby pawn admires the capturer")
+	# a full heart makes a baby next to the parents
+	Game.piece(fan)["affection"] = 100.0
+	var births := 0
+	for i in 30:
+		var count_before := 0
+		for sq in 64:
+			if r.board[sq] != 0:
+				count_before += 1
+		cs._births(ChessRules.WHITE)
+		var count_after := 0
+		for sq in 64:
+			if r.board[sq] != 0:
+				count_after += 1
+		if count_after > count_before:
+			births += 1
+			break
+	_check(births == 1 and Game.affection_of(fan) == 0.0, "a full heart eventually makes a baby and resets")
+	var babies := 0
+	for sq in 64:
+		if r.board[sq] != 0 and bool(Game.piece(r.ids[sq]).get("baby", false)):
+			babies += 1
+	_check(babies == 1 and not r.in_check(ChessRules.BLACK), "one baby, born without giving check")
+	# team battles gather adjacent friends of each fighter
+	r.load_fen("4k3/8/2nbp3/3p4/2NB4/8/8/4K3 w - -")
+	var party := cs._party(ChessRules.square_from_name("d5"), ChessRules.BLACK, [ChessRules.square_from_name("d4"), ChessRules.square_from_name("d5")])
+	_check(party.size() == 3, "three black neighbours join the fight: %d" % party.size())
+	# losing to Yugi for reals sends you to the shadow realm; winning banishes him
+	var gone := {}
+	cs.shadow_realm.connect(func(info: Dictionary): gone.merge({"hit": true}))
+	r.setup_start()
+	cs.state = "encounter"
+	Game.graveyard[ChessRules.WHITE].clear()
+	Game.bury(ChessRules.WHITE, ChessRules.ROOK, 777)
+	cs.pending = {"kind": "cards", "index": 0, "color": ChessRules.WHITE, "for_reals": true}
+	cs.resolve_encounter("lost")
+	_check(gone.has("hit") and cs.state == "over", "lost for reals: shadow realm")
+	r.setup_start()
+	r.remove_piece(0)
+	cs.state = "encounter"
+	cs.pending = {"kind": "cards", "index": 0, "color": ChessRules.WHITE, "for_reals": true}
+	cs.resolve_encounter("won")
+	_check(Game.yugi_banished and r.board[0] == ChessRules.ROOK, "won for reals: Yugi banished and the rook revived")
+	await get_tree().create_timer(1.5).timeout
 	# stepping on the bomb ends the chess game
 	var boom := {}
 	cs.nuked.connect(func(info: Dictionary): boom.merge(info))

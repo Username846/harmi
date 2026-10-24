@@ -227,8 +227,9 @@ func _draw_piece_at(s: int, code: int, pid: int) -> void:
 				pts.append(pts[0])
 				draw_polyline(pts, Color(1.0, 0.8, 0.35, 0.55 + 0.25 * sin(_t * 5.0)), sq * 0.09, true)
 	var alpha: float = alpha_of.get(pid, 1.0) * (0.38 if away else 1.0)
-	PieceArt.draw_piece(self, t, white, b.x, b.y, sq, Color(1, 1, 1, alpha))
-	var top: float = b.y - PieceArt.height(t) * sq
+	var ps := sq * (0.7 if bool(life.get("baby", false)) else 1.0)
+	PieceArt.draw_piece(self, t, white, b.x, b.y, ps, Color(1, 1, 1, alpha))
+	var top: float = b.y - PieceArt.height(t) * ps
 	if not Game.buffs_of(pid).is_empty():
 		var tw := sin(_t * 4.0 + pid) * 0.3 + 1.0
 		_sparkle(Vector2(b.x + sq * 0.18, top - sq * 0.02), sq * 0.09 * tw)
@@ -236,6 +237,8 @@ func _draw_piece_at(s: int, code: int, pid: int) -> void:
 		_draw_job_sign(b, int(life["away"]))
 	elif float(life["mood"]) < 30.0:
 		_draw_rain_cloud(Vector2(b.x, top - sq * 0.2), float(life["mood"]), pid)
+	elif float(life.get("affection", 0.0)) >= 100.0:
+		_draw_heart(Vector2(b.x, top - sq * 0.16 + sin(_t * 3.0 + pid) * sq * 0.03), sq * 0.11)
 	if not bool(life["car"]):
 		_draw_no_car(Vector2(b.x - sq * 0.3, b.y - sq * 0.06))
 
@@ -256,6 +259,14 @@ func _draw_toppled(s: int, t: int, white: bool, pid: int, b: Vector2) -> void:
 		_sparkle(p, sq * 0.05)
 	if s == selected:
 		draw_rect(square_rect(s).grow(-3), Color(1.0, 0.8, 0.35, 0.6), false, 2.0)
+
+
+## A little pink heart over pieces whose affection is full.
+func _draw_heart(c: Vector2, r: float) -> void:
+	var col := Color(1.0, 0.4, 0.7, 0.85 + 0.15 * sin(_t * 6.0))
+	draw_circle(c + Vector2(-r * 0.5, 0), r * 0.55, col)
+	draw_circle(c + Vector2(r * 0.5, 0), r * 0.55, col)
+	draw_colored_polygon(PackedVector2Array([c + Vector2(-r * 1.02, r * 0.15), c + Vector2(r * 1.02, r * 0.15), c + Vector2(0, r * 1.2)]), col)
 
 
 func _draw_job_sign(b: Vector2, turns: int) -> void:

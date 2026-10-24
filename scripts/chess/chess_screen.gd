@@ -7,8 +7,11 @@ extends Control
 signal encounter_requested(info: Dictionary)
 signal quit_to_title
 signal nuked(info: Dictionary)
+signal shadow_realm(info: Dictionary)
 
 const PINK := Color(1.0, 0.45, 0.75)
+const TEAM_CHANCE := 0.4 # how often a duel pulls the neighbours in
+const BIRTH_CHANCE := 0.4 # per turn, once a piece's affection is full
 const ARM_SOUND := preload("res://assets/audio/arm.wav")
 const SHORT_REASON := {"is away on a job": "away", "is knocked over": "knocked over", "has no car": "no car"}
 
@@ -249,6 +252,8 @@ func _start_turn() -> void:
 	if _upkept != turn_no:
 		_upkept = turn_no
 		_upkeep(mover)
+		if _check_bomb():
+			return
 	_refresh_hud()
 	if Music.pending_crash and is_visible_in_tree():
 		_crash_beyblade()
@@ -281,8 +286,21 @@ func _start_turn() -> void:
 			_turn_done(mover)
 
 
-## Start of a side's turn: pieces come back from their odd jobs.
+## Start of a side's turn: pieces come back from their odd jobs, lovers may
+## have a baby, and a ruined graveyard spreads its despair.
 func _upkeep(color: int) -> void:
+	_return_from_jobs(color)
+	_births(color)
+	if Game.yugi_banished and not Game.graveyard_restored():
+		for s in 64:
+			var code := rules.board[s]
+			if code != 0 and ChessRules.color_of(code) == color:
+				Game.change_mood(rules.ids[s], -1.5)
+	if Game.gravekeeper == color and Game.keeper_cooldown > 0:
+		Game.keeper_cooldown -= 1
+
+
+func _return_from_jobs(color: int) -> void:
 	for s in 64:
 		var code := rules.board[s]
 		if code == 0 or ChessRules.color_of(code) != color:
@@ -488,7 +506,7 @@ func _play_move(m: Dictionary, _human: bool, from_frac: float = 0.0) -> void:
 		await t1.finished
 		if not _alive(g):
 			return
-		_on_piece_fallen(rules.board[cap], rules.ids[cap], cap)
+		_on_piece_fallen(rules.board[cap], rules.ids[cap], cap, pid)
 		board.disintegrate(cap, 1.3)
 		var t2 := board.slide(pid, from, to, 0.6, 1.0, 0.2)
 		await t2.finished
@@ -516,9 +534,11 @@ func _play_move(m: Dictionary, _human: bool, from_frac: float = 0.0) -> void:
 
 ## A piece leaves the board for good (captured, sniped, driven-by): it goes to
 ## the graveyard and its comrades take it hard.
-func _on_piece_fallen(code: int, pid: int, s: int) -> void:
+func _on_piece_fallen(code: int, pid: int, s: int, capturer: int = -1) -> void:
 	var color := ChessRules.color_of(code)
 	Game.bury(color, code & 7, pid)
+	if capturer >= 0:
+		_admire(capturer, s)
 	if (code & 7) != ChessRules.KING:
 		_witness(color, s, 6.0)
 	if _is_human(color):
@@ -537,12 +557,120 @@ func _witness(color: int, at: int, amount: float) -> void:
 		Game.change_mood(rules.ids[s], -amount * (1.8 if d <= 2 else 1.0))
 
 
+## Comrades who watched `capturer` take a piece near them fall for it a little.
+func _admire(capturer: int, at: int) -> void:
+	var cs := rules.find_id(capturer)
+	if cs < 0:
+		return
+	var color := ChessRules.color_of(rules.board[cs])
+	for s in 64:
+		var code := rules.board[s]
+		if code == 0 or s == cs or ChessRules.color_of(code) != color:
+			continue
+		var d := maxi(absi((s & 7) - (at & 7)), absi((s >> 3) - (at >> 3)))
+		if d > 2:
+			continue
+		Game.add_affection(rules.ids[s], 22.0 if d <= 1 else 13.0, capturer)
+		board.fx.burst(board.fx.head_of(s), PINK, 6, board.sq * 0.8)
+
+
+## Lovers with a full affection meter may have a baby beside them.
+func _births(color: int) -> void:
+	for s in 64:
+		var code := rules.board[s]
+		if code == 0 or ChessRules.color_of(code) != color:
+			continue
+		var pid := rules.ids[s]
+		if Game.affection_of(pid) < 100.0:
+			continue
+		var partner := _partner_square(s)
+		if partner < 0 or randf() >= BIRTH_CHANCE:
+			continue
+		var t := _baby_type(code & 7, rules.board[partner] & 7)
+		var spot := _crib(s, partner, color, t)
+		if spot < 0:
+			continue
+		var baby := Game.new_piece_id()
+		rules.place_piece(spot, t | (ChessRules.BLACK_BIT if color == ChessRules.BLACK else 0), baby)
+		var life := Game.piece(baby)
+		life["baby"] = true
+		life["mood"] = 90.0
+		var other := rules.ids[partner]
+		for parent in [pid, other]:
+			Game.piece(parent)["affection"] = 0.0
+			Game.change_mood(parent, 12.0)
+		board.alpha_of[baby] = 0.0
+		var tw := create_tween()
+		tw.tween_method(func(a: float): board.alpha_of[baby] = a, 0.0, 1.0, 1.0)
+		tw.tween_callback(func(): board.alpha_of.erase(baby))
+		board.fx.burst(board.square_center(spot), PINK, 36, board.sq * 2.0)
+		_log("[color=#ff73bf]The %s and the %s had a baby %s on %s![/color]" % [_title(s), _title(partner), Game.PIECE_NAMES[t], ChessRules.square_name(spot)])
+
+
+## The crush if it's still on the board and on the same side, otherwise the
+## nearest friendly piece (who becomes the new crush).
+func _partner_square(s: int) -> int:
+	var pid := rules.ids[s]
+	var color := ChessRules.color_of(rules.board[s])
+	var crush: int = int(Game.piece(pid).get("crush", -1))
+	var cs := rules.find_id(crush) if crush >= 0 else -1
+	if cs >= 0 and cs != s and ChessRules.color_of(rules.board[cs]) == color:
+		return cs
+	var best := -1
+	var best_d := 99
+	for o in 64:
+		var code := rules.board[o]
+		if code == 0 or o == s or ChessRules.color_of(code) != color:
+			continue
+		var d := maxi(absi((s & 7) - (o & 7)), absi((s >> 3) - (o >> 3)))
+		if d < best_d:
+			best_d = d
+			best = o
+	if best >= 0:
+		Game.piece(pid)["crush"] = rules.ids[best]
+	return best
+
+
+## Mostly pawns; sometimes it takes after a parent (never a second king).
+func _baby_type(a: int, b: int) -> int:
+	if randf() < 0.55:
+		return ChessRules.PAWN
+	var t: int = a if randf() < 0.5 else b
+	return ChessRules.PAWN if t == ChessRules.KING else t
+
+
+## An empty square next to either parent where the baby can safely appear.
+func _crib(a: int, b: int, color: int, t: int) -> int:
+	var spots: Array = []
+	for base in [a, b]:
+		for df in [-1, 0, 1]:
+			for dr in [-1, 0, 1]:
+				var f: int = (base & 7) + df
+				var r: int = (base >> 3) + dr
+				if f < 0 or f > 7 or r < 0 or r > 7:
+					continue
+				var sq := r * 8 + f
+				if rules.board[sq] != 0 or spots.has(sq):
+					continue
+				if t == ChessRules.PAWN and (r == 0 or r == 7):
+					continue
+				spots.append(sq)
+	spots.shuffle()
+	var code := t | (ChessRules.BLACK_BIT if color == ChessRules.BLACK else 0)
+	for sq in spots:
+		var c := rules.copy()
+		c.place_piece(sq, code, 999)
+		if not c.in_check(1 - color):
+			return sq
+	return -1
+
+
 ## Removes a piece off-turn with the ash effect (sniper, drive-by).
-func _kill_piece(s: int) -> void:
+func _kill_piece(s: int, by: int = -1) -> void:
 	var code := rules.board[s]
 	if code == 0:
 		return
-	_on_piece_fallen(code, rules.ids[s], s)
+	_on_piece_fallen(code, rules.ids[s], s, by)
 	board.disintegrate(s, 1.5)
 	rules.remove_piece(s)
 	if _is_human(1 - ChessRules.color_of(code)):
@@ -750,6 +878,24 @@ func _on_menu_inspect(s: int) -> void:
 		bar.draw_rect(Rect2(r.position, Vector2(r.size.x * mood / 100.0, r.size.y)), Game.mood_color(mood))
 		bar.draw_rect(r, UI.BORDER, false, 1.0))
 	mood_row.add_child(bar)
+	var aff := float(life.get("affection", 0.0))
+	var aff_row := HBoxContainer.new()
+	info.add_child(aff_row)
+	var crush: int = int(life.get("crush", -1))
+	var cs := rules.find_id(crush) if crush >= 0 else -1
+	var crush_text := " - sweet on the %s" % _title(cs) if cs >= 0 else ""
+	aff_row.add_child(UI.label("Affection: %d%%%s" % [int(aff), crush_text], 16, PINK))
+	var abar := Control.new()
+	abar.custom_minimum_size = Vector2(70, 16)
+	abar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	abar.draw.connect(func():
+		var r2 := Rect2(Vector2(0, 4), Vector2(abar.size.x, 10))
+		abar.draw_rect(r2, Color(0.12, 0.1, 0.11))
+		abar.draw_rect(Rect2(r2.position, Vector2(r2.size.x * aff / 100.0, r2.size.y)), PINK)
+		abar.draw_rect(r2, UI.BORDER, false, 1.0))
+	aff_row.add_child(abar)
+	if bool(life.get("baby", false)):
+		info.add_child(UI.label("Born on this board. Small, but fierce.", 15, PINK))
 	info.add_child(UI.label(BattleData.MOVES_DESC[t], 17))
 	var st: Dictionary = BattleData.STATS[t]
 	info.add_child(UI.label("Duel stats  HP %d  MP %d  ATK %d  DEF %d  MAG %d" % [st["hp"], st["mp"], st["atk"], st["def"], st["mag"]], 15, UI.DIM))
@@ -907,7 +1053,7 @@ func _on_menu_date(s: int) -> void:
 	var color := ChessRules.color_of(code)
 	state = "encounter"
 	board.interactive = false
-	pending = {"kind": "date", "date_id": rules.ids[s]}
+	pending = {"kind": "date", "date_id": rules.ids[s], "mood_before": Game.mood_of(rules.ids[s])}
 	encounter_requested.emit({
 		"kind": "date", "own": color == rules.side,
 		"date_type": code & 7, "date_color": color, "date_id": rules.ids[s], "date_mood": Game.mood_of(rules.ids[s]),
@@ -922,7 +1068,9 @@ func _resolve_date(p: Dictionary, result: String) -> void:
 		_start_turn()
 		return
 	var mood := Game.mood_of(int(p["date_id"]))
-	_log("[color=#ff73bf]You take the %s on a date. It is now %s.[/color]" % [_title(s), Game.mood_name(mood).to_lower()])
+	var gain := 15.0 + maxf(0.0, mood - float(p.get("mood_before", mood))) * 0.6
+	Game.add_affection(int(p["date_id"]), gain)
+	_log("[color=#ff73bf]You take the %s on a date. It is now %s, and its heart is %d%% full.[/color]" % [_title(s), Game.mood_name(mood).to_lower(), int(Game.affection_of(int(p["date_id"])))])
 	_pass_after_action()
 
 
@@ -1022,7 +1170,7 @@ func _fire_sniper(from: int, to: int) -> void:
 	if not _alive(g):
 		return
 	_log("[color=#a9a39f]One shot. The %s crumbles into ash. No labyrinth, no duel.[/color]" % _title(to))
-	_kill_piece(to)
+	_kill_piece(to, rules.ids[from])
 	await get_tree().create_timer(1.6).timeout
 	if _alive(g):
 		_pass_after_action()
@@ -1182,12 +1330,38 @@ func _execute_human(m: Dictionary) -> void:
 	_log("%s strikes the %s..." % [Game.piece_title(hero_code & 7, ChessRules.color_of(hero_code)), Game.piece_title(foe_code & 7, ChessRules.color_of(foe_code))])
 	state = "encounter"
 	status_label.text = "Entering " + Game.encounter_title(e)
+	var hero_party: Array = []
+	var foe_party: Array = []
+	if e["kind"] == "fight" and randf() < TEAM_CHANCE:
+		hero_party = _party(from, ChessRules.color_of(hero_code), [from, cap])
+		foe_party = _party(cap, ChessRules.color_of(foe_code), [from, cap])
+		if not hero_party.is_empty() or not foe_party.is_empty():
+			_log("[color=#e0aa4a]The neighbours pile in! Team battle: %d vs %d.[/color]" % [hero_party.size() + 1, foe_party.size() + 1])
 	encounter_requested.emit({
-		"kind": e["kind"], "lab": e["lab"],
+		"kind": e["kind"], "lab": e["lab"], "hero_party": hero_party, "foe_party": foe_party,
 		"hero_type": hero_code & 7, "hero_color": ChessRules.color_of(hero_code), "hero_id": rules.ids[from], "hero_mood": Game.mood_of(rules.ids[from]),
 		"foe_type": foe_code & 7, "foe_color": ChessRules.color_of(foe_code), "foe_id": rules.ids[cap], "foe_mood": Game.mood_of(rules.ids[cap]),
 		"foe_screen_pos": board.get_global_transform() * board.square_center(cap),
 	})
+
+
+## Up to three pieces of `color` standing next to square s, ready to fight.
+func _party(s: int, color: int, skip: Array) -> Array:
+	var out: Array = []
+	for df in [-1, 0, 1]:
+		for dr in [-1, 0, 1]:
+			var f: int = (s & 7) + df
+			var r: int = (s >> 3) + dr
+			if f < 0 or f > 7 or r < 0 or r > 7:
+				continue
+			var sq := r * 8 + f
+			var code := rules.board[sq]
+			if code == 0 or skip.has(sq) or ChessRules.color_of(code) != color:
+				continue
+			var pid := rules.ids[sq]
+			out.append({"type": code & 7, "color": color, "id": pid, "mood": Game.mood_of(pid), "buffs": Game.buffs_of(pid)})
+	out.shuffle()
+	return out.slice(0, 3)
 
 
 ## Called by Main when an encounter ends. result: "won"/"retreat" for captures,
@@ -1234,7 +1408,7 @@ func resolve_encounter(result: String) -> void:
 		return
 	var cap: int = p["cap"]
 	var foe_t: int = p["foe_code"] & 7
-	_on_piece_fallen(p["foe_code"], int(p["foe_id"]), cap)
+	_on_piece_fallen(p["foe_code"], int(p["foe_id"]), cap, pid)
 	board.disintegrate(cap, 2.6)
 	Game.add_item("ash")
 	Game.stats["captures"] += 1
@@ -1264,11 +1438,48 @@ func _show_graveyard() -> void:
 	var allowed := why == ""
 	var gp := GraveyardPanel.new(color, allowed, why)
 	gp.duel_requested.connect(_on_grave_duel)
+	if gp.has_signal("reals_requested"):
+		gp.connect("reals_requested", func(i: int): _on_grave_duel(i, true))
+	if gp.has_signal("raise_requested"):
+		gp.connect("raise_requested", _on_keeper_raise)
+	if gp.has_signal("repaired"):
+		gp.connect("repaired", func(id: String):
+			_log("[color=#6fc06a]You repair the graveyard: %s.[/color]" % String(Game._section(id).get("name", id)))
+			_refresh_hud())
+	if gp.has_signal("keeper_crowned"):
+		gp.connect("keeper_crowned", _on_keeper_crowned)
 	add_child(gp)
 
 
-func _on_grave_duel(index: int) -> void:
-	if state != "idle":
+func _on_keeper_crowned() -> void:
+	_log("[color=#e0aa4a]The graveyard is whole again. You are its new Gravekeeper.[/color]")
+	for s in 64:
+		var code := rules.board[s]
+		if code != 0 and ChessRules.color_of(code) == Game.gravekeeper:
+			Game.change_mood(rules.ids[s], 10.0)
+
+
+## The gravekeeper raises a fallen piece without a duel. Uses the turn.
+func _on_keeper_raise(index: int) -> void:
+	if state != "idle" or Game.gravekeeper != rules.side or Game.keeper_cooldown > 0:
+		return
+	var color := rules.side
+	var graves: Array = Game.graveyard[color]
+	if index >= graves.size():
+		return
+	var t: int = graves[index]["type"]
+	if _revive_square(color, t) < 0:
+		_notice("There's no room on your side of the board for the %s right now." % Game.PIECE_NAMES[t])
+		return
+	Game.keeper_cooldown = Game.KEEPER_COOLDOWN
+	state = "busy"
+	board.interactive = false
+	_log("[color=#e0aa4a]As Gravekeeper, you call your %s back from the soil.[/color]" % Game.PIECE_NAMES[t])
+	_resolve_cards({"color": color, "index": index, "keeper": true}, "won")
+
+
+func _on_grave_duel(index: int, for_reals: bool = false) -> void:
+	if state != "idle" or Game.yugi_banished:
 		return
 	var color := rules.side
 	var entry: Dictionary = Game.graveyard[color][index]
@@ -1278,10 +1489,13 @@ func _on_grave_duel(index: int) -> void:
 		return
 	state = "encounter"
 	board.interactive = false
-	pending = {"kind": "cards", "index": index, "color": color}
-	_log("You challenge Yugi Moto to a children's card game for your %s." % Game.PIECE_NAMES[t])
+	pending = {"kind": "cards", "index": index, "color": color, "for_reals": for_reals}
+	if for_reals:
+		_log("[color=#b070e0]You challenge Yugi Moto to a duel FOR REALS. The loser goes to the Shadow Realm.[/color]")
+	else:
+		_log("You challenge Yugi Moto to a children's card game for your %s." % Game.PIECE_NAMES[t])
 	encounter_requested.emit({
-		"kind": "cards", "player_color": color, "wager_type": t, "difficulty": Game.difficulty,
+		"kind": "cards", "player_color": color, "wager_type": t, "difficulty": Game.difficulty, "for_reals": for_reals,
 		"foe_type": t, "foe_color": color,
 		"foe_screen_pos": board.get_global_transform() * (board.origin + Vector2(board.sq * 4.0, board.sq * 4.0)),
 	})
@@ -1291,6 +1505,15 @@ func _resolve_cards(p: Dictionary, result: String) -> void:
 	var color: int = p["color"]
 	var index: int = p["index"]
 	var graves: Array = Game.graveyard[color]
+	if bool(p.get("for_reals", false)):
+		if result != "won":
+			state = "over"
+			board.interactive = false
+			_log("[color=#b070e0]The shadows close in. You are gone.[/color]")
+			shadow_realm.emit({"piece": Game.PIECE_NAMES[int(graves[index]["type"])] if index < graves.size() else "piece"})
+			return
+		Game.yugi_banished = true
+		_log("[color=#b070e0]Yugi Moto is dragged into the Shadow Realm. The graveyard falls into disarray and despair.[/color]")
 	if result != "won" or index >= graves.size():
 		var fee := mini(5, int(Game.wallets[color]))
 		if fee > 0:
@@ -1314,7 +1537,7 @@ func _resolve_cards(p: Dictionary, result: String) -> void:
 	tw.tween_method(func(a: float): board.alpha_of[pid] = a, 0.0, 1.0, 1.2)
 	tw.tween_callback(func(): board.alpha_of.erase(pid))
 	board.fx.burst(board.square_center(s), UI.GOLD, 40, board.sq * 2.5)
-	_log("[color=#e0aa4a]You win! Your %s rises from the graveyard on %s.[/color]" % [Game.PIECE_NAMES[t], ChessRules.square_name(s)])
+	_log("[color=#e0aa4a]%s Your %s rises from the graveyard on %s.[/color]" % ["" if p.get("keeper", false) else "You win!", Game.PIECE_NAMES[t], ChessRules.square_name(s)])
 	_refresh_hud()
 	var g := _gen
 	await get_tree().create_timer(1.3).timeout

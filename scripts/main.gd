@@ -199,6 +199,7 @@ func _start_game(vs_ai: bool, difficulty: int) -> void:
 	chess.encounter_requested.connect(_on_encounter_requested)
 	chess.quit_to_title.connect(_quit_to_title)
 	chess.nuked.connect(_on_nuked)
+	chess.shadow_realm.connect(_on_shadow_realm)
 	layer.add_child(chess)
 	_debug_bomb()
 	await _fade_to(0.0, 0.5)
@@ -239,6 +240,37 @@ func _on_nuked(info: Dictionary) -> void:
 	encounter.connect("finished", _on_survival_over)
 	layer.add_child(encounter)
 	await _fade_to(0.0, 1.2)
+
+
+## Lost a duel with Yugi "for reals": the player is gone for good.
+func _on_shadow_realm(info: Dictionary) -> void:
+	await _fade_to(1.0, 1.0)
+	if encounter:
+		encounter.queue_free()
+		encounter = null
+	if chess:
+		chess.queue_free()
+		chess = null
+	var path: String = SCREEN_SCRIPTS["shadow"]
+	if not ResourceLoader.exists(path):
+		show_title()
+		await _fade_to(0.0)
+		return
+	var script: GDScript = load(path)
+	encounter = script.new()
+	encounter.call("setup", info)
+	encounter.connect("finished", func(choice: String):
+		await _fade_to(1.0, 0.6)
+		if encounter:
+			encounter.queue_free()
+			encounter = null
+		if choice == "new_game":
+			_start_game(Game.vs_ai, Game.difficulty)
+		else:
+			show_title()
+			await _fade_to(0.0, 0.6))
+	layer.add_child(encounter)
+	await _fade_to(0.0, 1.5)
 
 
 func _on_survival_over(_result: String) -> void:

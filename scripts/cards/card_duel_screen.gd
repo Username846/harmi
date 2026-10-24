@@ -80,7 +80,12 @@ var doom_t := 0.0
 var drone: AudioStreamPlayer
 var ticker: SongTicker # the duel theme and its lyrics, along the top
 var _singer := "yugi" # who's singing Shadow Carnival right now (yugi or yami)
-var _swap_t := 0.0 # flash when the portrait changes hands
+var _shown := "yugi" # who the portrait shows (changes halfway through a turnaround)
+var _swap_t := 0.0 # time left in the turnaround when the portrait changes hands
+var _talk := -1.0 # mouth openness from the song, -1 when nobody's singing
+var _clock := -1.0 # smoothed song position: it only ever moves forward, so line changes don't flicker
+var _line_i := 0 # the lyric line the clock has reached
+var _mouth_track := "" # the song's MOUTH string, cached
 var _shk := Vector2.ZERO
 var _doom_layer: Control # drawn above the side panel while the player is swallowed
 
@@ -1002,7 +1007,7 @@ func _set_info(text: String) -> void:
 
 func _process(delta: float) -> void:
 	t += delta
-	_swap_t = maxf(0.0, _swap_t - delta)
+	_update_song(delta)
 	if view.is_empty():
 		return
 	for s in 2:
@@ -1531,7 +1536,7 @@ func _draw_portrait() -> void:
 	CardArt.line_rrect(self, pr, 10.0, border, 3.0 if direct_ok else 2.0)
 	var font := ThemeDB.fallback_font
 	var fs := 15
-	var label := "YAMI YUGI" if for_reals and _singer == "yami" else "YUGI MOTO"
+	var label := "YAMI YUGI" if for_reals and _shown == "yami" else "YUGI MOTO"
 	if direct_ok:
 		label = "ATTACK!"
 	var tw := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
@@ -1805,31 +1810,44 @@ func _draw_bubble() -> void:
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
-## [yami?, mouth 0-1 or -1] from the For Reals theme: whoever sings the current
-## line takes over the portrait, and his mouth follows the vocals.
-func _song_face() -> Array:
-	if ticker == null or not ticker.player.playing:
-		return [_singer == "yami", -1.0]
+const SWAP_TIME := 0.3
+
+
+## Follows the For Reals theme: whoever sings the current line takes over the
+## portrait (with a quick turnaround), and his mouth follows the vocals.
+func _update_song(delta: float) -> void:
+	if _swap_t > 0.0:
+		_swap_t = maxf(0.0, _swap_t - delta)
+		if _swap_t <= SWAP_TIME * 0.5:
+			_shown = _singer
+	if ticker == null or not for_reals or not ticker.player.playing:
+		_talk = -1.0
+		return
 	var ly := ticker._lyrics()
-	var consts := ly.get_script_constant_map()
-	if not consts.has("MOUTH"):
-		return [false, -1.0]
+	if _mouth_track == "":
+		_mouth_track = String(ly.get_script_constant_map().get("MOUTH", "-"))
+	# the mixer reports its position in lumps; run our own clock and only
+	# steer it gently toward the reported one (or jump if it's far off)
 	var pos := ticker._pos()
-	var now := "yugi"
-	for l in ly.LINES:
-		if float(l[0]) - 0.15 > pos:
-			break
-		if (l as Array).size() > 3:
-			now = String(l[3])
+	if _clock < 0.0 or absf(pos - _clock) > 0.5:
+		_clock = pos
+		_line_i = 0
+	else:
+		_clock = maxf(_clock, _clock + delta + (pos - _clock - delta) * 0.1)
+	var lines: Array = ly.LINES
+	while _line_i + 1 < lines.size() and float(lines[_line_i + 1][0]) - 0.1 <= _clock:
+		_line_i += 1
+	var now := _singer
+	if float(lines[_line_i][0]) - 0.1 <= _clock and (lines[_line_i] as Array).size() > 3:
+		now = String(lines[_line_i][3])
 	if now != _singer:
 		_singer = now
-		_swap_t = 0.35
-	var mouth: String = consts["MOUTH"]
-	var i := int(pos * 20.0)
+		_swap_t = SWAP_TIME
+	var i := int(_clock * 20.0)
 	var k := 0.0
-	if i >= 0 and i < mouth.length():
-		k = float(mouth.unicode_at(i) - 48) / 9.0
-	return [_singer == "yami", k]
+	if i >= 0 and i < _mouth_track.length() and _mouth_track != "-":
+		k = float(_mouth_track.unicode_at(i) - 48) / 9.0
+	_talk = lerpf(maxf(_talk, 0.0), k, minf(1.0, delta * 25.0))
 
 
 ## Yugi in a shadow game: mist at his feet, the pendant blazing, and at the end
@@ -1849,12 +1867,10 @@ func _draw_reals_yugi(pr: Rect2, inner: Rect2) -> void:
 	var sc := 1.0 - k * 0.97
 	if sc > 0.03:
 		var local := Rect2(inner.position - c, inner.size)
-		draw_set_transform(c + off + _shk, e * 6.0 + sin(t * 30.0) * 0.04 * k, Vector2(sc, sc))
-		var face := _song_face()
-		YugiArt.draw(self, local, t, yugi_expr, bool(face[0]), float(face[1]))
-		if _swap_t > 0.0:
-			# the shadows flare as one half hands the mic to the other
-			draw_circle(Vector2.ZERO, inner.size.x * 0.6, Color(ShadowArt.PURPLE, _swap_t * 1.6))
+		# handing the mic over: he spins round like a card and the other half faces you
+		var turn := absf(cos(PI * (1.0 - _swap_t / SWAP_TIME))) if _swap_t > 0.0 else 1.0
+		draw_set_transform(c + off + _shk, e * 6.0 + sin(t * 30.0) * 0.04 * k, Vector2(sc * maxf(0.04, turn), sc))
+		YugiArt.draw(self, local, t, yugi_expr, _shown == "yami", _talk if _swap_t <= 0.0 else -1.0)
 		# the pendant's golden blaze
 		var lp := pend - c
 		var pulse := 0.6 + 0.4 * sin(t * 4.0)

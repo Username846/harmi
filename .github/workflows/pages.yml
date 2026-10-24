@@ -68,6 +68,8 @@ jobs:
           ~/godot/godot --headless --path . res://tests/card_screen.tscn
           ~/godot/godot --headless --path . -s tests/test_survival.gd
           ~/godot/godot --headless --path . res://tests/survival_flow.tscn
+          ~/godot/godot --headless --path . res://tests/team_battle.tscn
+          ~/godot/godot --headless --path . res://tests/grave_restore.tscn
 
       - name: Export for the web
         run: |

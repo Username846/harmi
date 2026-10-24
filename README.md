@@ -22,6 +22,9 @@ Off the board, your pieces have lives of their own:
 * **Moods**: pieces get gloomy watching comrades lose their cars or turn to ash. Gloomy pieces fight
   worse, and the gloomier an enemy, the **darker its labyrinth**. Take pieces on **dates** to cheer them up.
 * **The Graveyard**: fallen pieces rest here. Beat **Yugi Moto** in a children's card game to bring one back.
+* **Title track**: a five-minute diss track, "Long Boy Diss (Black Side Freestyle)", rapped by a speech
+  synthesizer over a boom-bap beat, with no line repeated and the lyrics scrolling across the top of the
+  title screen. Tap the strip to mute it.
 * **Music**: the volume control is a **Beyblade**. Pull its rip cord harder and the bassline (a top
   bouncing down an oak staircase) plays louder and longer. Pull too hard and it snaps off and crashes
   into the board, knocking pieces around and over.
@@ -112,7 +115,7 @@ scripts/
   nuke/                  (spoiler) the end of the town
   survival/              (spoiler) surviving in the ruins
   title/, ui/            Title screen, theme, modals, inventory, shop, graveyard, Beyblade widget, item icons, help
-assets/audio/            The bassline and two sound effects (rendered by tools/gen_audio.py)
+assets/audio/            The bassline, sound effects (tools/gen_audio.py) and the title diss track (tools/gen_diss.py)
 tests/                   Headless tests (perft, labyrinths, board actions, AI timing, minigames)
 docs/                    Exported web build served by GitHub Pages
 ```
@@ -155,6 +158,7 @@ godot --headless --path . -s tests/test_survival.gd # survival balance across bo
 godot --headless --path . res://tests/survival_flow.tscn
 godot --headless --path . -s tests/test_ai.gd       # AI timing per difficulty
 python3 tools/gen_audio.py                          # re-render the music and sound effects
+python3 tools/gen_diss.py                           # re-render the title diss track (needs flite + ffmpeg)
 ```
 
 To rebuild the web version into `docs/` (requires the 4.7.2 web export templates):

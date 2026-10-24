@@ -12,6 +12,7 @@ var difficulty := 1
 var art: Control
 var beyblade: BeybladeButton
 var music_hint: Label
+var ticker: DissTicker
 
 
 func _ready() -> void:
@@ -50,12 +51,19 @@ func _ready() -> void:
 	music_hint.autowrap_mode = TextServer.AUTOWRAP_OFF
 	music_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(music_hint)
+	ticker = DissTicker.new()
+	add_child(ticker)
 	resized.connect(_layout)
 	column.minimum_size_changed.connect(_layout_deferred)
 	_layout()
 	_layout_deferred()
 	for i in 40:
 		_embers.append(_new_ember(true))
+
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed and ticker:
+		ticker.wake()
 
 
 func _set_diff(i: int) -> void:
@@ -71,11 +79,14 @@ func _layout() -> void:
 	var h := column.get_combined_minimum_size().y
 	var s := clampf(minf(size.x / 9.5, size.y / 7.5), 36.0, 92.0)
 	var avail := size.y - s * 1.95
-	var y := maxf(12.0, (avail - h) * 0.5)
+	var y := maxf(DissTicker.STRIP_H + 12.0, (avail - h) * 0.5)
 	column.position = Vector2((size.x - w) * 0.5, y)
+	if ticker:
+		ticker.position = Vector2.ZERO
+		ticker.size = Vector2(size.x, DissTicker.STRIP_H)
 	if beyblade:
 		beyblade.size = beyblade.custom_minimum_size
-		beyblade.position = Vector2(size.x - beyblade.size.x - 12, 10)
+		beyblade.position = Vector2(size.x - beyblade.size.x - 12, DissTicker.STRIP_H + 8.0)
 		music_hint.size = Vector2(220, 20)
 		music_hint.position = Vector2(size.x - 232, beyblade.position.y + beyblade.size.y + 2)
 

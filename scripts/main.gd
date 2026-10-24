@@ -44,10 +44,9 @@ func _ready() -> void:
 	if dbg.has("fen"):
 		await _start_game(dbg.get("ai", "1") == "1", 1)
 		chess.load_position(String(dbg["fen"]).uri_decode().replace("_", " "))
-		_debug_bomb()
 		return
 	if dbg.has("nuke"):
-		_on_nuked({"square": "e4", "piece": "White Pawn"})
+		_on_nuked({"square": "e8", "piece": "Black King", "side": "White"})
 		return
 	show_title()
 
@@ -208,23 +207,15 @@ func _start_game(vs_ai: bool, difficulty: int) -> void:
 	chess.nuked.connect(_on_nuked)
 	chess.shadow_realm.connect(_on_shadow_realm)
 	layer.add_child(chess)
-	_debug_bomb()
 	await _fade_to(0.0, 0.5)
 
 
-## Testing shortcut: &bomb=e4 moves the hidden bomb (&bomb=none removes it).
-func _debug_bomb() -> void:
-	if chess and dbg.has("bomb"):
-		var name := String(dbg["bomb"])
-		chess.bomb_sq = -1 if name == "none" else ChessRules.square_from_name(name)
-
-
-## A piece stepped on the hidden bomb. The town goes up, the chess game is
-## gone for good, and what's left is surviving in the ruins.
+## A desperate side used the Suitcase Nuke. The town goes up, the chess game
+## is gone for good, and what's left is surviving in the ruins.
 func _on_nuked(info: Dictionary) -> void:
 	var scene := NukeScene.new()
 	scene.town = String(dbg.get("town", NukeScene.town_name())).uri_decode().replace("_", " ")
-	scene.caption = "(It started when a %s stepped onto %s.)" % [info.get("piece", "piece"), info.get("square", "a square")]
+	scene.caption = "(It started when the %s side slid a suitcase under the %s on %s.)" % [info.get("side", "losing"), info.get("piece", "king"), info.get("square", "a square")]
 	add_child(scene)
 	await scene.finished
 	move_child(fade, get_child_count() - 1)

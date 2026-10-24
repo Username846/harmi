@@ -17,7 +17,8 @@ Off the board, your pieces have lives of their own:
 
 * **Odd Jobs and Really Odd Jobs** earn money, and the **Shop** sells useful goods (a Double Move
   Upgrade, a Sniper Rifle, a Drive-By Hotline for the pieces on the chessboard next door, used cars,
-  nitrous...) and some less useful ones (a decorative gourd).
+  nitrous...) and some less useful ones (a decorative gourd). When you're losing badly, the shopkeeper
+  will sell you a **Suitcase Nuke** from behind the counter.
 * **Pink Slip Races**: challenge an enemy piece to a drag race. The loser loses its car and can't move.
 * **Moods**: pieces get gloomy watching comrades lose their cars or turn to ash. Gloomy pieces fight
   worse, and the gloomier an enemy, the **darker its labyrinth**. Take pieces on **dates** to cheer them up.
@@ -129,7 +130,7 @@ scripts/
   race/                  Pink slip drag race
   date/                  Dates
   cards/                 Yugi Moto's children's card game
-  nuke/                  (spoiler) the end of the town
+  nuke/                  the Suitcase Nuke's explosion
   survival/              (spoiler) surviving in the ruins
   title/, ui/            Title screen, theme, modals, inventory, shop, graveyard, Beyblade widget, item icons, help
 assets/audio/            The bassline, sound effects (tools/gen_audio.py) and the title album (tools/gen_songs.py)
@@ -139,21 +140,18 @@ docs/                    Exported web build served by GitHub Pages
 
 All art is drawn procedurally in code. The music is synthesized by `tools/gen_audio.py` (Python + numpy).
 
-<details>
-<summary>Spoilers (for developers only)</summary>
+### The Suitcase Nuke
 
-A nuclear bomb is hidden under one random empty square in ranks 3-6 at the start of every match. Nothing on
-the board, in Inspect or in the help gives it away. The moment any piece of either side ends up on that
-square (a move, a capture, a Beyblade knock or a piece won back from the graveyard), the square splits
-open, the bomb beeps three times, and a full-screen animation shows the town being destroyed. The town is
-named after the player's time-zone city (`America/Chicago` -> Chicago), read from the browser without asking
-for location; it falls back to "Ashenford". The chess game is then over for good and the survival game
-begins in the ruins: scavenge for food and water, keep radiation down and signal the authorities until
-they find you. Testing shortcuts: `&bomb=e4` (or `&bomb=none`) places the bomb, `?nuke=1&town=Springfield`
-plays the explosion straight away, and `?screen=survival&town=Springfield` jumps into the ruins
-(`&seed=N` fixes the dice, `&rescue=N` starts the rescue meter at N%).
-
-</details>
+The shop keeps a Suitcase Nuke ($30) behind the counter. It's only sold to a side that is down 10 or
+more points of material (pawn 1, knight and bishop 3, rook 5, queen 9). Use it from the Inventory on your
+turn: it's slid under the enemy king, the square splits open, the bomb beeps three times, and a
+full-screen animation shows the town being destroyed. The town is named after the player's time-zone city
+(`America/Chicago` -> Chicago), read from the browser without asking for location; it falls back to
+"Ashenford". The chess game is then over for good and the survival game begins in the ruins: scavenge
+for food and water, keep radiation down and signal the authorities until they find you. Testing
+shortcuts: `?fen=rnbqkbnr/pppppppp/8/8/8/8/8/4K3_w_-_-&money=100` starts you losing badly,
+`?nuke=1&town=Springfield` plays the explosion straight away, and `?screen=survival&town=Springfield`
+jumps into the ruins (`&seed=N` fixes the dice, `&rescue=N` starts the rescue meter at N%).
 
 ## Development
 

@@ -17,10 +17,6 @@ func _ready() -> void:
 	var cs := ChessScreen.new()
 	add_child(cs)
 	var r := cs.rules
-	# the hidden bomb sits on an empty middle square and stays quiet for the other checks
-	if ResourceLoader.exists("res://scripts/survival/survival_screen.gd"):
-		_check(cs.bomb_sq >= 16 and cs.bomb_sq < 48 and r.board[cs.bomb_sq] == 0, "bomb hidden on an empty middle square")
-	cs.bomb_sq = -1
 	# revival: home square first, never giving check, pawns never on the back rank
 	r.remove_piece(ChessRules.square_from_name("e2"))
 	_check(cs._revive_square(ChessRules.WHITE, ChessRules.PAWN) == ChessRules.square_from_name("e2"), "pawn revives on its home square")
@@ -123,7 +119,6 @@ func _ready() -> void:
 	_check(r.side == ChessRules.BLACK, "the card duel used White's turn")
 	# affection: comrades who watch a capture nearby fall for the capturer
 	r.load_fen("4k3/8/8/3p4/4P3/3P4/8/4K3 w - -")
-	cs.bomb_sq = -1
 	var hero_id := r.ids[ChessRules.square_from_name("e4")]
 	var fan := r.ids[ChessRules.square_from_name("d3")]
 	var before_aff := Game.affection_of(fan)
@@ -192,20 +187,29 @@ func _ready() -> void:
 		await cut.finished
 	await get_tree().process_frame
 	_check(cs._twerks.is_empty() and cs.state != "cutscene", "turn resumes after the twerk")
-	# stepping on the bomb ends the chess game
+	# the Suitcase Nuke is only sold when you're losing badly, and ends the chess game
 	var boom := {}
 	cs.nuked.connect(func(info: Dictionary): boom.merge(info))
 	r.setup_start()
+	cs._refresh_hud()
+	Game.active_side = ChessRules.WHITE
+	_check(not Game.losing_badly() and Game.material_deficit() == 0, "even game: not losing badly")
+	r.load_fen("rnbqkbnr/pppppppp/8/8/8/8/8/4K3 w - -")
+	cs._refresh_hud()
+	_check(Game.losing_badly() and not Game.losing_badly(ChessRules.BLACK), "down a whole army: losing badly")
+	var shop := ShopPanel.new()
+	add_child(shop)
+	_check(not shop._locked("nuke"), "the shop sells the nuke to a losing side")
+	r.load_fen("rnb1kbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - -")
+	cs._refresh_hud()
+	_check(shop._locked("nuke") and not Game.losing_badly(), "a side that's ahead can't buy it")
+	shop.queue_free()
+	r.load_fen("rnbqkbnr/pppppppp/8/8/8/8/8/4K3 w - -")
+	Game.add_item("nuke")
 	cs.state = "idle"
-	cs.bomb_sq = ChessRules.square_from_name("e4")
-	cs._turn_done(ChessRules.WHITE)
-	_check(boom.is_empty() and cs.state != "nuked", "nothing happens while the square is empty")
-	for m in r.legal_moves():
-		if m["from"] == ChessRules.square_from_name("e2") and m["to"] == ChessRules.square_from_name("e4"):
-			r.play(m)
-	cs._turn_done(ChessRules.WHITE)
-	_check(cs.state == "nuked", "a piece on the bomb square sets it off")
+	cs._launch_nuke()
+	_check(cs.state == "nuked" and not Game.has_item("nuke"), "pressing the button sets it off")
 	await get_tree().create_timer(2.3).timeout
-	_check(String(boom.get("square", "")) == "e4" and String(boom.get("piece", "")) == "White Pawn", "nuked signal names the square and piece: %s" % str(boom))
+	_check(String(boom.get("square", "")) == "e8" and String(boom.get("piece", "")) == "Black King" and String(boom.get("side", "")) == "White", "nuked signal names the target: %s" % str(boom))
 	print("BOARD TESTS PASSED" if ok else "BOARD TESTS FAILED")
 	get_tree().quit(0 if ok else 1)

@@ -18,6 +18,7 @@ const QUIPS := {
 	"gourd": "A connoisseur, I see.",
 	"spoon": "Truly commemorative.",
 	"pet_rock": "His name is Gerald. Be good to him.",
+	"nuke": "Don't tell me what it's for. I don't want to know.",
 }
 const GENERIC := ["Pleasure doing business.", "No refunds!", "Tell your friends. Or don't.", "Enjoy. Responsibly."]
 
@@ -88,6 +89,11 @@ func _price(id: String) -> int:
 	return 0
 
 
+## The nuke stays behind the counter until you're losing badly.
+func _locked(id: String) -> bool:
+	return id == "nuke" and not Game.losing_badly()
+
+
 func _sold_out(id: String) -> bool:
 	return bool(Game.ITEMS[id].get("unique", false)) and Game.has_item(id)
 
@@ -111,6 +117,9 @@ func _update_buy() -> void:
 	if _sold_out(selected):
 		buy_btn.disabled = true
 		buy_btn.text = "Already owned"
+	elif _locked(selected):
+		buy_btn.disabled = true
+		buy_btn.text = "You're not desperate enough"
 	elif Game.money < price:
 		buy_btn.disabled = true
 		buy_btn.text = "Need $%d" % price
@@ -124,6 +133,9 @@ func _select(id: String) -> void:
 	var owned := Game.count(id)
 	var extra := "  (you have %d)" % owned if owned > 0 else ""
 	desc.text = "%s - $%d%s\n%s" % [Game.item_name(id), _price(id), extra, Game.item_desc(id)]
+	if _locked(id):
+		var down := Game.material_deficit()
+		desc.text += "\n\"That one's behind the counter. Come back when you're down %d points. You're down %d.\"" % [Game.NUKE_GAP, down] if down > 0 else "\n\"That one's behind the counter. You're doing fine. Come back when it's hopeless.\""
 	desc.add_theme_color_override("font_color", UI.TEXT)
 	for b in grid.get_children():
 		b.queue_redraw()
@@ -131,7 +143,7 @@ func _select(id: String) -> void:
 
 
 func _on_buy() -> void:
-	if selected == "" or _sold_out(selected):
+	if selected == "" or _sold_out(selected) or _locked(selected):
 		return
 	var id := selected
 	if not Game.spend(_price(id)):
@@ -168,6 +180,10 @@ func _draw_tile(b: Button, id: String, price: int) -> void:
 	var afford := Game.money >= price
 	var txt := "SOLD" if _sold_out(id) else "$%d" % price
 	var col := UI.GOLD if afford else Color(0.55, 0.4, 0.35)
+	if _locked(id):
+		txt = "LOCKED"
+		col = UI.DIM
+		b.draw_rect(Rect2(ir.position, ir.size), Color(0.05, 0.04, 0.05, 0.55))
 	if _sold_out(id):
 		col = UI.DIM
 	b.draw_string(font, Vector2(0, s.y - 9), txt, HORIZONTAL_ALIGNMENT_CENTER, s.x, 17, col)

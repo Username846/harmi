@@ -166,6 +166,23 @@ static func draw_icon(ci: CanvasItem, id: String, r: Rect2, t: float = 0.0) -> v
 			_shape(ci, r, [Vector2(0.4, 0.4), Vector2(0.62, 0.34), Vector2(0.63, 0.4), Vector2(0.41, 0.46)], Color(0.15, 0.15, 0.17), line, w)
 			ci.draw_line(_p(r, 0.46, 0.55), _p(r, 0.44, 0.66), line, w * 1.5, true)
 			ci.draw_circle(_p(r, 0.62, 0.37), r.size.x * 0.035, Color(0.6, 0.85, 1.0))
+		"nuke":
+			# a battered suitcase with a radiation trefoil
+			_shape(ci, r, [Vector2(0.1, 0.3), Vector2(0.9, 0.3), Vector2(0.9, 0.84), Vector2(0.1, 0.84)], Color(0.32, 0.3, 0.26), line, w)
+			_outline(ci, _poly(r, [Vector2(0.38, 0.3), Vector2(0.38, 0.18), Vector2(0.62, 0.18), Vector2(0.62, 0.3)]), line, w * 1.4)
+			var c := _p(r, 0.5, 0.57)
+			var rad := r.size.x * 0.22
+			ci.draw_circle(c, rad, col)
+			for k in 3:
+				var a0 := -PI * 0.5 + k * TAU / 3.0 - 0.5
+				var pts := PackedVector2Array([c])
+				for i in 7:
+					pts.append(c + Vector2.from_angle(a0 + i / 6.0) * rad * 0.85)
+				ci.draw_colored_polygon(pts, Color(0.1, 0.08, 0.06))
+			ci.draw_circle(c, rad * 0.22, col)
+			ci.draw_circle(c, rad * 0.13, Color(0.1, 0.08, 0.06))
+			if int(t * 2.0) % 2 == 0:
+				ci.draw_circle(_p(r, 0.82, 0.38), r.size.x * 0.035, Color(1, 0.2, 0.15))
 		"phone":
 			_shape(ci, r, [Vector2(0.32, 0.12), Vector2(0.68, 0.12), Vector2(0.7, 0.88), Vector2(0.3, 0.88)], col, line, w)
 			ci.draw_rect(Rect2(_p(r, 0.37, 0.2), r.size * Vector2(0.26, 0.24)), Color(0.55, 0.9, 0.7))

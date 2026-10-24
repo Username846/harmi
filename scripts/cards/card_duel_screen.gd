@@ -79,6 +79,8 @@ var doom := "" # for reals: "yugi" or "player" while the shadows take the loser
 var doom_t := 0.0
 var drone: AudioStreamPlayer
 var ticker: SongTicker # the duel theme and its lyrics, along the top
+var _singer := "yugi" # who's singing Shadow Carnival right now (yugi or yami)
+var _swap_t := 0.0 # flash when the portrait changes hands
 var _shk := Vector2.ZERO
 var _doom_layer: Control # drawn above the side panel while the player is swallowed
 
@@ -1000,6 +1002,7 @@ func _set_info(text: String) -> void:
 
 func _process(delta: float) -> void:
 	t += delta
+	_swap_t = maxf(0.0, _swap_t - delta)
 	if view.is_empty():
 		return
 	for s in 2:
@@ -1528,7 +1531,7 @@ func _draw_portrait() -> void:
 	CardArt.line_rrect(self, pr, 10.0, border, 3.0 if direct_ok else 2.0)
 	var font := ThemeDB.fallback_font
 	var fs := 15
-	var label := "YUGI MOTO"
+	var label := "YAMI YUGI" if for_reals and _singer == "yami" else "YUGI MOTO"
 	if direct_ok:
 		label = "ATTACK!"
 	var tw := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
@@ -1802,6 +1805,33 @@ func _draw_bubble() -> void:
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
+## [yami?, mouth 0-1 or -1] from the For Reals theme: whoever sings the current
+## line takes over the portrait, and his mouth follows the vocals.
+func _song_face() -> Array:
+	if ticker == null or not ticker.player.playing:
+		return [_singer == "yami", -1.0]
+	var ly := ticker._lyrics()
+	var consts := ly.get_script_constant_map()
+	if not consts.has("MOUTH"):
+		return [false, -1.0]
+	var pos := ticker._pos()
+	var now := "yugi"
+	for l in ly.LINES:
+		if float(l[0]) - 0.15 > pos:
+			break
+		if (l as Array).size() > 3:
+			now = String(l[3])
+	if now != _singer:
+		_singer = now
+		_swap_t = 0.35
+	var mouth: String = consts["MOUTH"]
+	var i := int(pos * 20.0)
+	var k := 0.0
+	if i >= 0 and i < mouth.length():
+		k = float(mouth.unicode_at(i) - 48) / 9.0
+	return [_singer == "yami", k]
+
+
 ## Yugi in a shadow game: mist at his feet, the pendant blazing, and at the end
 ## the vortex that swallows him.
 func _draw_reals_yugi(pr: Rect2, inner: Rect2) -> void:
@@ -1820,7 +1850,11 @@ func _draw_reals_yugi(pr: Rect2, inner: Rect2) -> void:
 	if sc > 0.03:
 		var local := Rect2(inner.position - c, inner.size)
 		draw_set_transform(c + off + _shk, e * 6.0 + sin(t * 30.0) * 0.04 * k, Vector2(sc, sc))
-		YugiArt.draw(self, local, t, yugi_expr)
+		var face := _song_face()
+		YugiArt.draw(self, local, t, yugi_expr, bool(face[0]), float(face[1]))
+		if _swap_t > 0.0:
+			# the shadows flare as one half hands the mic to the other
+			draw_circle(Vector2.ZERO, inner.size.x * 0.6, Color(ShadowArt.PURPLE, _swap_t * 1.6))
 		# the pendant's golden blaze
 		var lp := pend - c
 		var pulse := 0.6 + 0.4 * sin(t * 4.0)

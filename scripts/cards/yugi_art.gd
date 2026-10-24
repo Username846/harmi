@@ -5,8 +5,11 @@ extends RefCounted
 ## pendant on a chain and a blue school jacket. Drawn as a bust that always fits
 ## inside the given rect (designed for 120-400 px tall).
 ##
-## draw(ci, rect, t, expression): expression is "smug", "shocked", "happy" or
-## "determined"; t is the time in seconds (for bobbing, blinking and hair sway).
+## draw(ci, rect, t, expression, yami, talk): expression is "smug", "shocked",
+## "happy" or "determined"; t is the time in seconds (for bobbing, blinking and
+## hair sway). yami draws his darker half instead (taller spikes, crimson eyes,
+## the eye glowing on his forehead); talk >= 0 opens his mouth that wide (0-1),
+## for singing.
 
 const BOX_H := 1.25 # the figure is 1 unit wide and BOX_H units tall
 
@@ -29,6 +32,12 @@ const EXPRESSIONS := ["smug", "shocked", "happy", "determined"]
 const HEAD_SCALE := 1.16
 const HEAD_PIVOT := Vector2(0.5, 0.74)
 
+const YAMI_IRIS := Color(0.78, 0.08, 0.16)
+const YAMI_JACKET := Color(0.13, 0.08, 0.16)
+const YAMI_JACKET_DARK := Color(0.06, 0.03, 0.08)
+
+static var _yami := false
+static var _talk := -1.0
 static var _o := Vector2.ZERO
 static var _s := 100.0
 static var _base_o := Vector2.ZERO
@@ -104,9 +113,11 @@ static func mouth_point(rect: Rect2) -> Vector2:
 	return f.position + Vector2(0.5, 0.73) * f.size.x
 
 
-static func draw(ci: CanvasItem, rect: Rect2, t: float, expression: String = "smug") -> void:
+static func draw(ci: CanvasItem, rect: Rect2, t: float, expression: String = "smug", yami: bool = false, talk: float = -1.0) -> void:
 	if not EXPRESSIONS.has(expression):
 		expression = "smug"
+	_yami = yami
+	_talk = talk
 	var f := figure_rect(rect)
 	var bob := sin(t * 1.8) * 0.006
 	if expression == "shocked":
@@ -124,6 +135,8 @@ static func draw(ci: CanvasItem, rect: Rect2, t: float, expression: String = "sm
 	_face(ci, t, expression)
 	_bangs(ci, t)
 	_brows(ci, expression)
+	if _yami:
+		_third_eye(ci, t)
 	_head_off()
 	_pendant(ci, t, expression)
 	if expression == "shocked":
@@ -160,6 +173,8 @@ const HAIR_RIM := Color(0.36, 0.16, 0.4)
 static func _hair_back(ci: CanvasItem, t: float, expression: String) -> void:
 	var c := Vector2(0.5, 0.47)
 	var bristle := 1.05 if expression == "shocked" else 1.0
+	if _yami:
+		bristle *= 1.14
 	_fill(ci, _ellipse(0.5, 0.48, 0.235, 0.2), HAIR, Color(0, 0, 0, 0))
 	for i in SPIKES.size():
 		var sp: Array = SPIKES[i]
@@ -185,15 +200,17 @@ static func _hair_back(ci: CanvasItem, t: float, expression: String) -> void:
 
 static func _body(ci: CanvasItem) -> void:
 	# jacket
+	var jacket := YAMI_JACKET if _yami else JACKET
+	var jacket_dark := YAMI_JACKET_DARK if _yami else JACKET_DARK
 	_fill(ci, [Vector2(0.06, BOX_H), Vector2(0.09, 1.02), Vector2(0.2, 0.9), Vector2(0.38, 0.85), Vector2(0.62, 0.85),
-		Vector2(0.8, 0.9), Vector2(0.91, 1.02), Vector2(0.94, BOX_H)], JACKET, INK, 0.008)
-	_fill(ci, [Vector2(0.06, BOX_H), Vector2(0.09, 1.02), Vector2(0.14, 0.96), Vector2(0.18, BOX_H)], JACKET_DARK, Color(0, 0, 0, 0))
-	_fill(ci, [Vector2(0.94, BOX_H), Vector2(0.91, 1.02), Vector2(0.86, 0.96), Vector2(0.82, BOX_H)], JACKET_DARK, Color(0, 0, 0, 0))
+		Vector2(0.8, 0.9), Vector2(0.91, 1.02), Vector2(0.94, BOX_H)], jacket, INK, 0.008)
+	_fill(ci, [Vector2(0.06, BOX_H), Vector2(0.09, 1.02), Vector2(0.14, 0.96), Vector2(0.18, BOX_H)], jacket_dark, Color(0, 0, 0, 0))
+	_fill(ci, [Vector2(0.94, BOX_H), Vector2(0.91, 1.02), Vector2(0.86, 0.96), Vector2(0.82, BOX_H)], jacket_dark, Color(0, 0, 0, 0))
 	# black tank top under the open jacket
 	_fill(ci, [Vector2(0.38, 0.86), Vector2(0.62, 0.86), Vector2(0.6, BOX_H), Vector2(0.4, BOX_H)], Color(0.1, 0.1, 0.13), INK, 0.006)
 	# stand-up collar and lapels
-	_fill(ci, [Vector2(0.37, 0.85), Vector2(0.32, 0.8), Vector2(0.3, 0.88), Vector2(0.42, 1.08)], JACKET, INK, 0.007)
-	_fill(ci, [Vector2(0.63, 0.85), Vector2(0.68, 0.8), Vector2(0.7, 0.88), Vector2(0.58, 1.08)], JACKET, INK, 0.007)
+	_fill(ci, [Vector2(0.37, 0.85), Vector2(0.32, 0.8), Vector2(0.3, 0.88), Vector2(0.42, 1.08)], jacket, INK, 0.007)
+	_fill(ci, [Vector2(0.63, 0.85), Vector2(0.68, 0.8), Vector2(0.7, 0.88), Vector2(0.58, 1.08)], jacket, INK, 0.007)
 	for y in [1.13, 1.2]:
 		ci.draw_circle(_v(0.36, y), _s * 0.012, GOLD)
 		ci.draw_circle(_v(0.64, y), _s * 0.012, GOLD)
@@ -234,6 +251,7 @@ static func _eye(ci: CanvasItem, cx: float, cy: float, side: float, expression: 
 	var ry := 0.058
 	var iris_r := 0.036
 	var look := Vector2.ZERO
+	var tilt_yami := 0.0
 	match expression:
 		"shocked":
 			ry = 0.066
@@ -242,11 +260,15 @@ static func _eye(ci: CanvasItem, cx: float, cy: float, side: float, expression: 
 			look = Vector2(0.012, 0.004)
 		"determined":
 			ry = 0.05
+	if _yami:
+		ry *= 0.82
+		tilt_yami = 0.45 * side
 	var white := _ellipse(cx, cy, 0.05, ry, 24)
 	_fill(ci, white, Color(1, 1, 1), Color(0, 0, 0, 0))
 	var ic := Vector2(cx, cy + 0.006) + look
-	ci.draw_circle(_v(ic.x, ic.y), _s * iris_r, IRIS)
-	ci.draw_circle(_v(ic.x, ic.y + iris_r * 0.3), _s * iris_r * 0.65, IRIS.darkened(0.35))
+	var iris := YAMI_IRIS if _yami else IRIS
+	ci.draw_circle(_v(ic.x, ic.y), _s * iris_r, iris)
+	ci.draw_circle(_v(ic.x, ic.y + iris_r * 0.3), _s * iris_r * 0.65, iris.darkened(0.35))
 	ci.draw_circle(_v(ic.x, ic.y), _s * iris_r * 0.45, INK)
 	ci.draw_circle(_v(ic.x - iris_r * 0.35, ic.y - iris_r * 0.4), _s * iris_r * 0.3, Color(1, 1, 1))
 	ci.draw_circle(_v(ic.x + iris_r * 0.35, ic.y + iris_r * 0.35), _s * iris_r * 0.14, Color(1, 1, 1, 0.8))
@@ -259,6 +281,9 @@ static func _eye(ci: CanvasItem, cx: float, cy: float, side: float, expression: 
 		"determined":
 			lid = 0.3
 			tilt = 0.35 * side # lower toward the nose
+	if _yami:
+		lid = maxf(lid, 0.32)
+		tilt = tilt_yami # a hard, angled glare
 	if lid > 0.0:
 		var top := cy - ry
 		var y_in := top + ry * 2.0 * lid * (1.0 + tilt)
@@ -275,6 +300,9 @@ static func _eye(ci: CanvasItem, cx: float, cy: float, side: float, expression: 
 
 
 static func _mouth(ci: CanvasItem, t: float, expression: String) -> void:
+	if _talk >= 0.0:
+		_singing_mouth(ci, _talk)
+		return
 	match expression:
 		"smug":
 			_curve(ci, [Vector2(0.465, 0.728), Vector2(0.5, 0.732), Vector2(0.53, 0.726), Vector2(0.548, 0.712)], INK, 0.009)
@@ -290,6 +318,41 @@ static func _mouth(ci: CanvasItem, t: float, expression: String) -> void:
 		"determined":
 			_fill(ci, [Vector2(0.465, 0.722), Vector2(0.535, 0.722), Vector2(0.53, 0.738), Vector2(0.47, 0.738)], Color(1, 1, 1), INK, 0.008)
 			_curve(ci, [Vector2(0.467, 0.73), Vector2(0.533, 0.73)], Color(0.5, 0.45, 0.45), 0.004)
+
+
+## A mouth opened `k` (0-1) wide: lips, a dark inside, top teeth; Yami's grin is
+## wider and toothier, with fangs.
+static func _singing_mouth(ci: CanvasItem, k: float) -> void:
+	var w := (0.04 if _yami else 0.032) + k * 0.006
+	var h := 0.004 + k * 0.034
+	var cy := 0.73 + h * 0.35
+	if k < 0.08:
+		if _yami:
+			_curve(ci, [Vector2(0.5 - w, 0.722), Vector2(0.5, 0.732), Vector2(0.5 + w, 0.718)], INK, 0.009)
+		else:
+			_curve(ci, [Vector2(0.5 - w * 0.8, 0.73), Vector2(0.5 + w * 0.8, 0.73)], INK, 0.009)
+		return
+	var shape := _ellipse(0.5, cy, w, h, 20)
+	_fill(ci, shape, Color(0.32, 0.04, 0.08), INK, 0.008)
+	# top teeth
+	_fill(ci, [Vector2(0.5 - w * 0.8, cy - h * 0.82), Vector2(0.5 + w * 0.8, cy - h * 0.82), Vector2(0.5 + w * 0.7, cy - h * 0.45), Vector2(0.5 - w * 0.7, cy - h * 0.45)], Color(1, 1, 1), Color(0, 0, 0, 0))
+	if _yami:
+		for sx in [-1.0, 1.0]:
+			_fill(ci, [Vector2(0.5 + sx * w * 0.55, cy - h * 0.5), Vector2(0.5 + sx * w * 0.35, cy - h * 0.5), Vector2(0.5 + sx * w * 0.45, cy - h * 0.05)], Color(1, 1, 1), Color(0, 0, 0, 0))
+	# tongue
+	if h > 0.016:
+		_fill(ci, _ellipse(0.5, cy + h * 0.55, w * 0.55, h * 0.3, 14), Color(0.9, 0.4, 0.45), Color(0, 0, 0, 0))
+
+
+## Yami's eye: the pendant's glyph burning on his forehead.
+static func _third_eye(ci: CanvasItem, t: float) -> void:
+	var pulse := 0.6 + 0.4 * sin(t * 5.0)
+	var c := Vector2(0.5, 0.505)
+	ci.draw_circle(_v(c.x, c.y), _s * (0.05 + 0.01 * pulse), Color(1.0, 0.8, 0.25, 0.22 * pulse))
+	_fill(ci, _ellipse(c.x, c.y, 0.034, 0.014, 16), Color(1.0, 0.92, 0.55), Color(0.85, 0.55, 0.1), 0.005)
+	ci.draw_circle(_v(c.x, c.y), _s * 0.008, Color(0.55, 0.3, 0.05))
+	_curve(ci, [Vector2(c.x - 0.004, c.y + 0.014), Vector2(c.x - 0.012, c.y + 0.032)], Color(0.85, 0.55, 0.1), 0.005)
+	_curve(ci, [Vector2(c.x + 0.01, c.y + 0.014), Vector2(c.x + 0.022, c.y + 0.026), Vector2(c.x + 0.03, c.y + 0.024)], Color(0.85, 0.55, 0.1), 0.005)
 
 
 static func _bangs(ci: CanvasItem, t: float) -> void:
@@ -331,8 +394,11 @@ static func _brows(ci: CanvasItem, expression: String) -> void:
 		_: # smug: one brow cocked
 			l = [Vector2(0.39, 0.548), Vector2(0.425, 0.538), Vector2(0.46, 0.55)]
 			r = [Vector2(0.54, 0.54), Vector2(0.575, 0.52), Vector2(0.61, 0.53)]
-	_curve(ci, l, INK, 0.016)
-	_curve(ci, r, INK, 0.016)
+	if _yami:
+		l = [Vector2(0.38, 0.528), Vector2(0.425, 0.546), Vector2(0.47, 0.574)]
+		r = [Vector2(0.53, 0.574), Vector2(0.575, 0.546), Vector2(0.62, 0.528)]
+	_curve(ci, l, INK, 0.019 if _yami else 0.016)
+	_curve(ci, r, INK, 0.019 if _yami else 0.016)
 
 
 static func _pendant(ci: CanvasItem, t: float, expression: String) -> void:

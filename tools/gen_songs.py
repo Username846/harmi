@@ -16,7 +16,8 @@ And the For Reals duel theme, a horrorcore threat from Yugi himself:
           (lines starting with "~" are his darker half, Yami, in a deeper, echoing voice)
 
 Writes assets/audio/songs/<id>.ogg and scripts/title/lyrics_<id>.gd (each
-line's start/end time, for the lyrics shown along the top of the screen).
+line's start/end time, for the lyrics shown along the top of the screen; for a
+two-voice song also who sings each line and a mouth track for lip sync).
 
 Needs numpy, the `flite` speech synthesizer and ffmpeg with libvorbis.
 Run from the repository root:  python3 tools/gen_songs.py [song ids...]
@@ -1000,7 +1001,11 @@ def render(sid):
             v = sing(song, text, slot, tmp)
             place(vox, v, start)
             place(vox, v * 0.25, start + 0.022)
-            timings.append((start, start + len(v) / SR, text.lstrip("~")))
+            timings.append((start, start + len(v) / SR, text.lstrip("~"), "yami" if text.startswith("~") else "yugi"))
+    # how wide the singer's mouth is, 20 times a second (0-9), for the duel screen's lip sync
+    hop = SR // 20
+    env = np.array([np.sqrt(np.mean(vox[i:i + hop] ** 2)) for i in range(0, len(vox), hop)])
+    mouth = "".join(str(int(d)) for d in np.clip(env / max(1e-6, np.percentile(env[env > 0.01], 90)) * 9, 0, 9))
     mix += vox
     mix *= np.clip((total - np.arange(len(mix)) / SR) / 1.5, 0, 1)
     mix = np.tanh(mix * 1.1)
@@ -1020,9 +1025,14 @@ def render(sid):
           "extends RefCounted", "",
           'const TITLE := "%s"' % song["title"], 'const ARTIST := "%s"' % song["artist"],
           "const LENGTH := %.2f" % total, "", "const LINES := ["]
-    for s, e, text in timings:
-        gd.append('\t[%.2f, %.2f, "%s"],' % (s, e, text.replace('"', '\\"')))
+    for s, e, text, who in timings:
+        if "alt" in song:
+            gd.append('\t[%.2f, %.2f, "%s", "%s"],' % (s, e, text.replace('"', '\\"'), who))
+        else:
+            gd.append('\t[%.2f, %.2f, "%s"],' % (s, e, text.replace('"', '\\"')))
     gd.append("]")
+    if "alt" in song:
+        gd += ["", "## Mouth openness 0-9, twenty steps a second.", 'const MOUTH := "%s"' % mouth]
     with open(os.path.join(ROOT, "scripts", "title", "lyrics_%s.gd" % sid), "w") as f:
         f.write("\n".join(gd) + "\n")
     overlaps = sum(1 for a, b in zip(timings, timings[1:]) if a[1] > b[0])

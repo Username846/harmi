@@ -38,6 +38,10 @@ Off the board, your pieces have lives of their own:
   with brass in the second half) and "Back Rank Bounce" (Queen Cushy, dembow bounce). The line being sung
   shows across the top of the title screen with the next one faded beneath it. Tap the strip to mute,
   tap NEXT to skip.
+* **Duel themes**: graveyard card duels have their own five-minute songs, sung by a child, Little Pip,
+  with the lyrics along the top: the cheerful "It's Time to Duel in the Graveyard" for ordinary duels,
+  and "The Weight of a Soul", a slow, grave ballad about a duel where the loser loses their soul, for
+  duels For Reals.
 * **Music**: the volume control is a **Beyblade**. Pull its rip cord harder and the bassline (a top
   bouncing down an oak staircase) plays louder and longer. Pull too hard and it snaps off and crashes
   into the board, knocking pieces around and over.
@@ -133,7 +137,7 @@ scripts/
   nuke/                  the Suitcase Nuke's explosion
   survival/              (spoiler) surviving in the ruins
   title/, ui/            Title screen, theme, modals, inventory, shop, graveyard, Beyblade widget, item icons, help
-assets/audio/            The bassline, sound effects (tools/gen_audio.py) and the title album (tools/gen_songs.py)
+assets/audio/            The bassline, sound effects (tools/gen_audio.py) , the title album and duel themes (tools/gen_songs.py)
 tests/                   Headless tests (perft, labyrinths, board actions, AI timing, minigames)
 docs/                    Exported web build served by GitHub Pages
 ```
@@ -175,7 +179,7 @@ godot --headless --path . -s tests/test_survival.gd # survival balance across bo
 godot --headless --path . res://tests/survival_flow.tscn
 godot --headless --path . -s tests/test_ai.gd       # AI timing per difficulty
 python3 tools/gen_audio.py                          # re-render the music and sound effects
-python3 tools/gen_songs.py                          # re-render the title album (needs flite + ffmpeg)
+python3 tools/gen_songs.py                          # re-render the title album and duel themes (needs flite + ffmpeg)
 ```
 
 To rebuild the web version into `docs/` (requires the 4.7.2 web export templates):

@@ -1,19 +1,24 @@
 class_name SongTicker
 extends Control
-## The title screen's album: three songs played in turn, with the line being
-## sung shown across the top of the screen and the next line faded beneath it.
-## Tap the strip to mute or unmute, tap NEXT to skip to the next song.
+## A song strip along the top of the screen: the line being sung, with the next
+## line faded beneath it. On the title screen it plays the three-song album in
+## turn (tap NEXT to skip); a duel sets `playlist` to its one theme, which loops.
+## Tap the strip to mute or unmute.
 
 const SONGS := [
 	[preload("res://scripts/title/lyrics_diss.gd"), preload("res://assets/audio/songs/diss.ogg")],
 	[preload("res://scripts/title/lyrics_epic.gd"), preload("res://assets/audio/songs/epic.ogg")],
 	[preload("res://scripts/title/lyrics_bounce.gd"), preload("res://assets/audio/songs/bounce.ogg")],
 ]
+const DUEL := [preload("res://scripts/title/lyrics_duel.gd"), preload("res://assets/audio/songs/duel.ogg")]
+const REALS := [preload("res://scripts/title/lyrics_reals.gd"), preload("res://assets/audio/songs/reals.ogg")]
 const STRIP_H := 64.0
 const NEXT_W := 70.0
 ## Lyrics switch this much earlier than the measured position (tuned by ear in the browser).
 const LEAD := 1.0
 
+## [[lyrics script, stream], ...]; set before the ticker enters the tree.
+var playlist: Array = SONGS
 var player: AudioStreamPlayer
 var muted := false
 var song := 0
@@ -30,12 +35,14 @@ func _ready() -> void:
 
 
 func _lyrics() -> GDScript:
-	return SONGS[song][0]
+	return playlist[song][0]
 
 
 func _play(i: int) -> void:
-	song = posmod(i, SONGS.size())
-	player.stream = SONGS[song][1]
+	song = posmod(i, playlist.size())
+	player.stream = playlist[song][1]
+	if DisplayServer.get_name() == "headless":
+		return # nobody can hear it, and a playback alive at exit counts as a leak
 	player.play()
 
 
@@ -48,7 +55,7 @@ func wake() -> void:
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		accept_event()
-		if event.position.x >= size.x - NEXT_W:
+		if _next_w() > 0.0 and event.position.x >= size.x - NEXT_W:
 			_play(song + 1)
 			return
 		muted = not muted
@@ -63,6 +70,11 @@ func _process(_delta: float) -> void:
 	if player.volume_db != want_db:
 		player.volume_db = want_db
 	queue_redraw()
+
+
+## The NEXT button only makes sense with more than one song.
+func _next_w() -> float:
+	return NEXT_W if playlist.size() > 1 else 0.0
 
 
 ## Where the song is right now, as heard: the mixer's position plus the time
@@ -93,8 +105,9 @@ func _draw() -> void:
 	draw_line(Vector2(0, STRIP_H), Vector2(w, STRIP_H), UI.GOLD.darkened(0.4), 2.0)
 	var fs := 21
 	var label_w := 200.0 if w > 700.0 else 0.0
-	var cx := label_w + (w - label_w - NEXT_W) * 0.5
-	var room := w - label_w - NEXT_W - 20.0
+	var nw := _next_w()
+	var cx := label_w + (w - label_w - nw) * 0.5
+	var room := w - label_w - nw - 20.0
 	var notice := ""
 	if muted:
 		notice = "Music muted - tap here to bring it back"
@@ -128,12 +141,15 @@ func _draw() -> void:
 		draw_rect(Rect2(Vector2.ZERO, Vector2(label_w, STRIP_H)), Color(0.12, 0.05, 0.05))
 		var beat := 0.5 + 0.5 * absf(sin(_pos() * PI * 1.5)) if player.playing and not muted else 0.5
 		draw_circle(Vector2(14, 15), 5.0, UI.RED.lerp(Color(1, 0.6, 0.5), beat))
-		draw_string(font, Vector2(26, 20), "NOW PLAYING  %d/%d" % [song + 1, SONGS.size()], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, UI.DIM)
+		var heading := "NOW PLAYING  %d/%d" % [song + 1, playlist.size()] if nw > 0.0 else "DUEL THEME"
+		draw_string(font, Vector2(26, 20), heading, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, UI.DIM)
 		var tfs := 14
 		while tfs > 9 and font.get_string_size(ly.TITLE, HORIZONTAL_ALIGNMENT_LEFT, -1, tfs).x > label_w - 16.0:
 			tfs -= 1
 		draw_string(font, Vector2(10, 38), ly.TITLE, HORIZONTAL_ALIGNMENT_LEFT, label_w - 14.0, tfs, UI.TEXT)
 		draw_string(font, Vector2(10, 55), ly.ARTIST, HORIZONTAL_ALIGNMENT_LEFT, label_w - 16.0, 13, UI.GOLD.darkened(0.15))
+	if nw <= 0.0:
+		return
 	# the NEXT button
 	var nr := Rect2(Vector2(w - NEXT_W, 0), Vector2(NEXT_W, STRIP_H))
 	draw_rect(nr, Color(0.12, 0.05, 0.05))

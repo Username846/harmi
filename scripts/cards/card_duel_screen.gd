@@ -78,6 +78,7 @@ var banner_time := 0.0
 var doom := "" # for reals: "yugi" or "player" while the shadows take the loser
 var doom_t := 0.0
 var drone: AudioStreamPlayer
+var ticker: SongTicker # the duel theme and its lyrics, along the top
 var _shk := Vector2.ZERO
 var _doom_layer: Control # drawn above the side panel while the player is swallowed
 
@@ -119,7 +120,10 @@ func _ready() -> void:
 	_build_panel()
 	if for_reals:
 		panel.add_theme_stylebox_override("panel", UI.panel_style(Color(0.07, 0.035, 0.1, 0.97), Color(0.5, 0.26, 0.7)))
-		drone = ShadowArt.play_drone(self, "duel", -13.0)
+		drone = ShadowArt.play_drone(self, "duel", -22.0)
+	ticker = SongTicker.new()
+	ticker.playlist = [SongTicker.REALS if for_reals else SongTicker.DUEL]
+	add_child(ticker)
 	resized.connect(_relayout)
 	panel.minimum_size_changed.connect(_queue_relayout)
 	_relayout()
@@ -199,13 +203,18 @@ func _relayout() -> void:
 	var w := size.x
 	var h := size.y
 	var m := 12.0
+	var top := 0.0
+	if ticker:
+		top = SongTicker.STRIP_H
+		ticker.position = Vector2.ZERO
+		ticker.size = Vector2(w, SongTicker.STRIP_H)
 	var landscape := w >= h * 1.15
 	if not landscape and w >= h * 0.8:
 		# near-square: use whichever arrangement gives bigger cards
 		var pw0 := clampf(w * 0.3, 280.0, 380.0)
-		_compute_layout(Rect2(m, m, w - pw0 - m * 3.0, h - m * 2.0))
+		_compute_layout(Rect2(m, top + m, w - pw0 - m * 3.0, h - top - m * 2.0))
 		var cw_land: float = lay["cw"]
-		_compute_layout(Rect2(m, m, w - m * 2.0, h - m * 3.0 - 300.0))
+		_compute_layout(Rect2(m, top + m, w - m * 2.0, h - top - m * 3.0 - 300.0))
 		landscape = cw_land > float(lay["cw"]) * 1.1
 	var pw := clampf(w * 0.3, 280.0, 380.0)
 	var mode := (2 if pw < 310.0 else 1) if landscape else 0
@@ -213,16 +222,16 @@ func _relayout() -> void:
 		_landscape = mode
 		_arrange_buttons(landscape, mode == 2)
 	if landscape:
-		panel.position = Vector2(w - pw - m, m)
-		panel.size = Vector2(pw, h - m * 2.0)
-		var r := Rect2(m, m, w - pw - m * 3.0, h - m * 2.0)
+		panel.position = Vector2(w - pw - m, top + m)
+		panel.size = Vector2(pw, h - top - m * 2.0)
+		var r := Rect2(m, top + m, w - pw - m * 3.0, h - top - m * 2.0)
 		var used := _compute_layout(r)
 		r.position.y += maxf(0.0, (r.size.y - used) * 0.5)
 		_compute_layout(r)
 		mat = r
 	else:
 		var pmin := panel.get_combined_minimum_size().y
-		var r2 := Rect2(m, m, w - m * 2.0, maxf(200.0, h - m * 3.0 - pmin))
+		var r2 := Rect2(m, top + m, w - m * 2.0, maxf(200.0, h - top - m * 3.0 - pmin))
 		var used2 := _compute_layout(r2)
 		r2.size.y = used2
 		mat = r2

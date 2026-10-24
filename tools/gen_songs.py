@@ -6,8 +6,13 @@ synthesized vocalist and beat, and no lyric ever repeated within a song.
   epic    "Coronation of the Long Boys"           Sir Ivory        orchestral, 80 BPM, brass in the second half
   bounce  "Back Rank Bounce"                      Queen Cushy      dembow bounce, 100 BPM
 
+And the two graveyard duel themes, sung by a child, Little Pip:
+
+  duel    "It's Time to Duel in the Graveyard"    Little Pip       chiptune kid pop, 96 BPM
+  reals   "The Weight of a Soul"                  Little Pip       slow and grave, 66 BPM (For Reals duels)
+
 Writes assets/audio/songs/<id>.ogg and scripts/title/lyrics_<id>.gd (each
-line's start/end time, for the lyrics shown on the title screen).
+line's start/end time, for the lyrics shown along the top of the screen).
 
 Needs numpy, the `flite` speech synthesizer and ffmpeg with libvorbis.
 Run from the repository root:  python3 tools/gen_songs.py [song ids...]
@@ -26,7 +31,8 @@ rng = np.random.default_rng(1993)
 
 SPOKEN = {"Ls": "L's", "e-file": "e file", "e-four": "e four", "h-file": "h file", "a-file": "a file",
           "mofos": "mo fos", "Yugi": "Yoogee", "Beyblade": "bay blade", "En passant": "On pa sont",
-          "h-five": "h five", "L-step": "L step", "L-shaped": "L shaped", "sixty-four": "sixty four"}
+          "h-five": "h five", "L-step": "L step", "L-shaped": "L shaped", "sixty-four": "sixty four",
+          "Zugzwang": "zoog zvang", "Pip": "Pipp"}
 
 
 # --- lyrics -----------------------------------------------------------------------
@@ -343,6 +349,191 @@ BOUNCE = {
 }
 
 
+DUEL = {
+    "intro": [(2, "Hi! I'm Pip, and it's time to duel in the graveyard!")],
+    "verses": [(4, [
+        "Down among the tombstones where the long pieces sleep",
+        "Yugi shuffles up his cards and the stakes are pretty steep",
+        "He's got hair just like a starfish and a puzzle round his neck",
+        "I've got a pocket full of pawns and a borrowed little deck",
+        "Four thousand life points, that's a lot for me to count",
+        "I use my fingers and my toes to keep track of the amount",
+        "Three monster zones lined up upon the grass",
+        "Draw a card, draw a card, hope it isn't trash",
+        "Summon one monster and cast a single spell",
+        "Then attack, attack, and ring the graveyard bell",
+        "My pawn has six hundred, he is small but he is brave",
+        "He marches right up to the edge of every grave",
+        "My knight is wearing horseshoes and my bishop wears a hat",
+        "My rook is like a castle and it's sitting where it's at",
+        "But my queen is twenty-five hundred, she's the very best",
+        "She knocks the monsters over and she never needs a rest",
+        "Higher attack wins, that's the only rule",
+        "The difference hits the life points, I learned that in school",
+        "Yugi says believe in the heart of the cards",
+        "I believe in snacks and in my big backyard",
+        "If your field is empty, I attack you to your face",
+        "Direct hit, direct hit, life points all over the place",
+        "Win the duel and a fallen piece comes home",
+        "Climbing out the dirt with a sparkly brand new comb",
+        "Lose the duel and nothing bad, we just shake hands",
+        "Then we go buy booster packs from the candy stands",
+    ]), (35, [
+        "Booster packs are ten bucks at Gambit Goods and Gas",
+        "I ripped one open with my teeth, the shopkeeper said class",
+        "Out came the Elongated Dragon, long as a train",
+        "He's so long his tail is still at home out in the rain",
+        "Promotion turns my pawn into a queen for a day",
+        "Checkmate makes the other monsters run away",
+        "En passant is French, I think it means excuse me",
+        "Sneaky little pawn snack, nobody could see",
+        "Fifty-Move Rule is a spell that takes a nap",
+        "Everybody yawns and the cards fall in my lap",
+        "Zugzwang means you have to move but you don't want to",
+        "Like going to the dentist when the dentist calls for you",
+        "The Beyblade card goes spinning off the tablecloth",
+        "Knocks a monster flying like a really angry moth",
+        "The Drive-By card, the neighbors honk and wave",
+        "They took out three monsters and they didn't even behave",
+        "Sniper Shot is quiet, just a tiny little pop",
+        "Double Move lets me go twice before I stop",
+        "Pink Slip takes your monster's car away",
+        "Now it has to walk to the duel every day",
+        "Yugi makes a face like he swallowed a lemon",
+        "His hair goes even spikier, it's pointing up to heaven",
+        "He says it isn't over and he draws with his eyes closed",
+        "Heart of the cards, I guess that's how it goes",
+        "He pulls a monster out that's twenty-five hundred tall",
+        "Uh oh, uh oh, I'm backing up against the wall",
+    ]), (66, [
+        "Mommy says be home before the moon comes out",
+        "But the moon is up already and the bats fly about",
+        "The graveyard isn't scary when you've got a friend",
+        "Even if he's grumpy right up to the end",
+        "Gravestones are the bleachers and the ghosts all cheer",
+        "One of them is booing, he's been booing for a year",
+        "I tap my pawn to read it and it's got a little face",
+        "It's not supposed to have a face, it's drawn there just in case",
+        "The turn counter's spinning, turn eleven, turn twelve",
+        "Yugi keeps his secret cards up on a dusty shelf",
+        "Life points going down, three thousand, two, and one",
+        "Is a children's card game supposed to be this fun",
+        "I summon my last bishop and he's praying very hard",
+        "He's praying for a miracle or one more lucky card",
+        "Yugi's pendant glowing like a nightlight in the dark",
+        "My heart is beating faster than a puppy at the park",
+        "Attack, attack, my bishop slides across the field",
+        "Yugi's monster topples and his life points start to yield",
+        "Zero, zero, zero, that's the sweetest little sound",
+        "I jump so high my shoelaces never touch the ground",
+        "Yugi says good game and gives a little bow",
+        "His hair bows too, I didn't know that hair knew how",
+        "My fallen rook climbs out and dusts off all the dirt",
+        "He says thank you, buddy, and he isn't even hurt",
+        "Back up to the chessboard, back to his old square",
+        "Pieces doing high fives everywhere",
+    ]), (97, [
+        "Every time a piece falls down I'll be waiting here",
+        "With a juice box and a deck and a whole lot of cheer",
+        "Shuffle, shuffle, cut the deck and deal the cards out wide",
+        "I'm nine and three quarters and I'm learning how to slide",
+        "Heart of the cards, heart of the cards, beating in my chest",
+        "Pawns and kings and graveyards, this game is the best",
+        "If you lose a piece today don't you cry or frown",
+        "Come and duel Yugi and we'll bring it back to town",
+        "Tombstone, tombstone, tell me who you are",
+        "Were you the knight who lost a pink slip race car",
+        "Moonlight on the deck and a lantern on the shed",
+        "I should probably go home, it's way past time for bed",
+        "One more duel, one more duel, one more for the road",
+        "My backpack's full of booster packs, it's a heavy load",
+        "Yugi, Yugi, thank you for the game",
+        "Next time I'll be bigger and I'll beat you just the same",
+        "It's time to duel, it's time to duel, the graveyard's open late",
+        "So bring your fallen pieces and don't you hesitate",
+    ])],
+    "spoken": [(32, "Okay, Mister Yugi. Your move. No peeking."),
+               (63, "Wait, I've got a trap card! Just kidding. There are no trap cards."),
+               (94, "That was so cool. Can we play again? Please? Pretty please?"),
+               (116, "This has been Little Pip. Goodnight, graveyard!"),
+               (118, "Goodnight, Mister Yugi. Goodnight, ghosts.")],
+}
+
+REALS = {
+    "intro": [(1, "This one isn't a game.")],
+    "verses": [(4, [
+        "The sky went black above the stones tonight",
+        "The lanterns in the graveyard all forgot their light",
+        "He raised the golden pendant and its eye began to burn",
+        "He said there is a kind of game from which you don't return",
+        "Twelve thousand life points, measured out like years",
+        "And every one I lose is paid for in my fears",
+        "No piece upon the table, no crown, no prize to keep",
+        "The thing we wager here is what you carry in your sleep",
+        "The loser of this duel will lose their soul",
+        "And fall into the shadows where nothing can be whole",
+        "My hands are shaking as I draw my opening hand",
+        "I count the cards like heartbeats just to understand",
+        "The purple mist is rising from the ground beneath my feet",
+        "It whispers names of all the ones who came here to compete",
+        "I am small and I am scared but I will not run",
+        "Somebody has to stand here till the duel is done",
+        "So I set my first card down upon the frozen ground",
+        "And listen to my heartbeat, the only friendly sound",
+    ]), (27, [
+        "He summons something ancient from the dark between the graves",
+        "With eyes like dying embers and a voice like ocean waves",
+        "It strikes and I feel colder, like a window left ajar",
+        "A thousand life points gone and I can't see a single star",
+        "He doesn't laugh, he doesn't smile, he only waits and stares",
+        "The ones he sent before me still are calling from somewhere",
+        "I hear them in the mist, a choir without breath",
+        "They sing about the shadow realm, a place that isn't death",
+        "It's worse than that, they tell me, it's forever and alone",
+        "A soul without a body in a world of grey and stone",
+        "I play my bravest pawn and he steps into the light",
+        "He's only six hundred but he's ready for the fight",
+        "He falls, and doesn't crumble into ash the way they do",
+        "He fades into the purple and I feel the cold come through",
+        "Eight thousand life points left, the turn count climbing high",
+        "I wonder if they'll miss me if I never say goodbye",
+        "I think about my mother calling me in for the night",
+        "I think about the porch light and I hold my cards up tight",
+    ]), (50, [
+        "The pendant pulls the warmth from me with every card I draw",
+        "The graveyard holds its breath and every shadow bares a claw",
+        "Four thousand life points, then three, then only two",
+        "And still a voice inside me tells me what I have to do",
+        "Believe in what you're holding, not in what he says you are",
+        "A soul is not a wager, it's a lantern, it's a star",
+        "I summon my last queen, the strongest card I own",
+        "She rises from the mist as if she's carved from moonlit bone",
+        "Twenty-five hundred strong, she doesn't bow her head",
+        "She stands between me and the place where wandering souls are led",
+        "He draws his final card, his face as pale as chalk",
+        "For the first time all night long he doesn't want to talk",
+        "The eye upon his pendant flickers like a dying flame",
+        "And somewhere in the dark I hear the shadows call his name",
+        "My queen attacks, the mist splits wide, the silence breaks in two",
+        "His life points fall to nothing and the cold goes rushing through",
+        "He reaches out to me but I can't reach him in time",
+        "The shadows pull him under and they leave the stones behind",
+    ]), (73, [
+        "The lanterns don't come back and the flowers turn to grey",
+        "Nobody tends the graveyard since he went away",
+        "I won, but winning feels like standing in the rain",
+        "A soul was still the price and someone paid it all the same",
+        "So if he ever asks you for a duel that's for real",
+        "Remember that the shadows never give back what they steal",
+        "Hold on to your soul. Whatever happens, hold on.",
+    ])],
+    "spoken": [(24, "My move. I'm still here."),
+               (47, "I won't let go. Do you hear me? I won't let go."),
+               (70, "It's over. It's over now."),
+               (81, "The Weight of a Soul.")],
+}
+
+
 # --- instruments ------------------------------------------------------------------
 
 def hz(m):
@@ -456,6 +647,26 @@ def pluck(m, dur=0.35):
     f = hz(m + 12)
     s = np.sin(2 * np.pi * f * t) + 0.5 * np.sin(2 * np.pi * 2 * f * t) * np.exp(-t * 12) + 0.25 * np.sin(2 * np.pi * 3 * f * t) * np.exp(-t * 20)
     return s * np.exp(-t * 9) * 0.12
+
+
+def square(m, dur):
+    """A soft chiptune square lead (odd harmonics only)."""
+    t = t_axis(dur)
+    f = hz(m)
+    out = np.zeros_like(t)
+    for n in (1, 3, 5, 7, 9):
+        out += np.sin(2 * np.pi * f * n * t) / n
+    return out * np.minimum(t / 0.005, 1) * np.exp(-t * 5) * 0.09
+
+
+def bell(m, dur=2.5):
+    """A struck bell: inharmonic partials ringing out."""
+    t = t_axis(dur)
+    f = hz(m)
+    out = np.zeros_like(t)
+    for ratio, g, d in ((1.0, 1.0, 1.2), (2.76, 0.5, 2.0), (5.4, 0.25, 3.5), (0.5, 0.4, 0.8)):
+        out += np.sin(2 * np.pi * f * ratio * t) * g * np.exp(-t * d)
+    return out * np.minimum(t / 0.003, 1) * 0.12
 
 
 def shaker():
@@ -589,6 +800,76 @@ def beat_bounce(song, total):
     return buf
 
 
+def beat_duel(song, total):
+    buf = np.zeros(int(total * SR))
+    bar_len = song["bar"]
+    step = bar_len / 16
+    # C major: C - G - Am - F, the sound of a Saturday morning
+    prog = [[48, 52, 55], [43, 47, 50], [45, 48, 52], [41, 45, 48]]
+    arp = [0, 1, 2, 1, 0, 2, 1, 2]
+    breaks = set(range(32, 35)) | set(range(63, 66)) | set(range(94, 97))
+    for bar in range(song["bars"]):
+        t0 = bar * bar_len
+        chord = prog[bar % 4]
+        for k in range(8):
+            place(buf, square(chord[arp[k]] + 24, step * 1.8), t0 + k * 2 * step)
+        if bar % 2 == 0:
+            place(buf, bell(chord[2] + 24, bar_len) * 0.5, t0)
+        if bar < 4 or bar >= 116:
+            continue
+        place(buf, bass808(chord[0] + 12, bar_len * 0.25) * 0.8, t0)
+        place(buf, bass808(chord[0] + 12, bar_len * 0.2) * 0.7, t0 + step * 8)
+        if bar in breaks:
+            place(buf, clap() * 0.6, t0 + 12 * step)
+            continue
+        for k in (0, 6, 8):
+            place(buf, kick(punch=120, decay=12), t0 + k * step)
+        for k in (4, 12):
+            place(buf, snare(tone=260, length=0.18) * 0.8, t0 + k * step)
+            place(buf, clap() * 0.4, t0 + k * step)
+        for k in range(0, 16, 2):
+            place(buf, hat(), t0 + k * step)
+    return buf
+
+
+def beat_reals(song, total):
+    buf = np.zeros(int(total * SR))
+    orch = np.zeros_like(buf)
+    bar_len = song["bar"]
+    step = bar_len / 16
+    # D minor: Dm - Bb - Gm - A, a slow walk to the gallows
+    prog = [[50, 53, 57], [46, 50, 53], [43, 46, 50], [45, 49, 52]]
+    for bar in range(song["bars"]):
+        t0 = bar * bar_len
+        chord = prog[(bar // 2) % 4]
+        rising = 50 <= bar < 70
+        if bar % 2 == 0:
+            place(orch, pad([n - 12 for n in chord] + [chord[0]], bar_len * 2, bright=0.45), t0)
+            if bar >= 12:
+                place(orch, choir([n + 12 for n in chord], bar_len * 2) * (1.4 if rising else 1.0), t0)
+        if bar % 4 == 0:
+            place(orch, bell(38, bar_len * 1.5), t0)  # the graveyard bell tolls
+        if bar >= 27:
+            for k in range(0, 16, 4):
+                place(orch, pluck(chord[(k // 4) % 3], 0.5) * 0.6, t0 + k * step)
+        if rising:
+            loud = min(1.0, 0.4 + (bar - 50) * 0.05)
+            place(orch, brass(chord[0], bar_len * 0.9, loud), t0)
+            place(orch, brass(chord[2] - 12, bar_len * 0.9, loud * 0.7), t0)
+            for k in (0, 6, 10, 12):
+                place(orch, timpani(chord[0], 0.9) * 0.7, t0 + k * step)
+        if bar < 4 or bar >= 80:
+            continue
+        # a heartbeat: lub-dub, once a bar, quickening when the queen rises
+        beats = (0, 8) if rising else (0,)
+        for k in beats:
+            place(buf, kick(punch=60, decay=6) * 0.9, t0 + k * step)
+            place(buf, kick(punch=50, decay=8) * 0.6, t0 + (k + 1.2) * step)
+    wind = np.convolve(rng.standard_normal(len(buf)), np.ones(200) / 200, "same") * 0.25
+    wind *= 0.6 + 0.4 * np.sin(2 * np.pi * np.arange(len(buf)) / SR / 11.0)
+    return buf + reverb(orch, 3.0, 0.45) + wind
+
+
 SONGS = {
     "diss": {"title": "Long Boy Diss (Black Side Freestyle)", "artist": "MC Long Boy", "lyrics": DISS,
              "bpm": 90, "bars": 112, "voice": "rms", "pitch": 0.9, "echo": False, "beat": beat_diss, "vox": 0.6, "beat_gain": 0.55},
@@ -596,6 +877,11 @@ SONGS = {
              "bpm": 80, "bars": 100, "voice": "awb", "pitch": 0.92, "echo": True, "beat": beat_epic, "vox": 0.62, "beat_gain": 0.5, "brass_from": 50},
     "bounce": {"title": "Back Rank Bounce", "artist": "Queen Cushy", "lyrics": BOUNCE,
                "bpm": 100, "bars": 125, "voice": "slt", "pitch": 1.04, "echo": False, "beat": beat_bounce, "vox": 0.62, "beat_gain": 0.55},
+    # Little Pip: the slt voice sped up into a child's register
+    "duel": {"title": "It's Time to Duel in the Graveyard", "artist": "Little Pip", "lyrics": DUEL,
+             "bpm": 96, "bars": 120, "voice": "slt", "pitch": 1.46, "echo": False, "beat": beat_duel, "vox": 0.6, "beat_gain": 0.55},
+    "reals": {"title": "The Weight of a Soul", "artist": "Little Pip", "lyrics": REALS,
+              "bpm": 66, "bars": 83, "voice": "slt", "pitch": 1.42, "echo": True, "beat": beat_reals, "vox": 0.6, "beat_gain": 0.5},
 }
 
 

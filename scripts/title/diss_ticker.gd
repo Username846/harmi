@@ -6,6 +6,8 @@ extends Control
 const LYRICS := preload("res://scripts/title/diss_lyrics.gd")
 const TRACK := preload("res://assets/audio/diss_track.ogg")
 const STRIP_H := 64.0
+## Lyrics switch this much earlier than the measured position (tuned by ear in the browser).
+const LEAD := 1.0
 
 var player: AudioStreamPlayer
 var muted := false
@@ -88,7 +90,7 @@ func _draw() -> void:
 		_line(font, notice, cx, STRIP_H * 0.5 + 8.0, fs, room, 1.0)
 	else:
 		# two fixed lines: what's being rapped now, and what's coming next
-		var pos := _pos()
+		var pos := _pos() + LEAD
 		var lines: Array = LYRICS.LINES
 		var cur := -1
 		for i in lines.size():

@@ -194,8 +194,8 @@ func _search(b: ChessRules, depth: int, alpha: int, beta: int, ply: int) -> int:
 ##   blunder: chance of just playing a random legal move
 ##   budget: thinking time in ms
 const LEVELS := [
-	{"elo": 300, "depth": 0, "noise": 120, "blunder": 0.25, "budget": 300},
-	{"elo": 700, "depth": 1, "noise": 25, "blunder": 0.06, "budget": 600},
+	{"elo": 300, "depth": 1, "noise": 110, "blunder": 0.25, "budget": 400},
+	{"elo": 700, "depth": 1, "noise": 30, "blunder": 0.08, "budget": 600},
 	{"elo": 1200, "depth": 3, "noise": 15, "blunder": 0.05, "budget": 1500},
 ]
 

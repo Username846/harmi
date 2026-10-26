@@ -80,16 +80,32 @@ static func pst(t: int, idx: int) -> int:
 ## Static evaluation from the side to move's perspective.
 static func evaluate(b: ChessRules) -> int:
 	var score := 0
+	var mat := [0, 0]
+	var kings := [0, 0]
 	for s in 64:
 		var code := b.board[s]
 		if code == 0:
 			continue
 		var t := code & 7
+		if t == 6:
+			kings[1 if (code & 8) else 0] = s
 		if (code & 8) == 0:
 			score += VALUES[t] + pst(t, s)
+			mat[0] += VALUES[t]
 		else:
 			# mirror rank for black
 			score -= VALUES[t] + pst(t, (7 - (s >> 3)) * 8 + (s & 7))
+			mat[1] += VALUES[t]
+	# mop-up: well ahead in an ending, herd the enemy king to the edge and walk yours over
+	var lead: int = mat[0] - mat[1]
+	if absi(lead) >= 400 and mini(mat[0], mat[1]) <= 1300:
+		var w := 0 if lead > 0 else 1
+		var lk: int = kings[1 - w]
+		var wk: int = kings[w]
+		var edge := maxi(3 - (lk & 7), (lk & 7) - 4) + maxi(3 - (lk >> 3), (lk >> 3) - 4)
+		var near := 14 - (absi((lk & 7) - (wk & 7)) + absi((lk >> 3) - (wk >> 3)))
+		var mop := edge * 12 + near * 5
+		score += mop if w == 0 else -mop
 	return score if b.side == ChessRules.WHITE else -score
 
 
@@ -170,9 +186,23 @@ func _search(b: ChessRules, depth: int, alpha: int, beta: int, ply: int) -> int:
 	return alpha
 
 
-## Picks a move for the side to move. difficulty: 0 easy, 1 normal, 2 hard.
-## Pieces on `banned` squares (no car, away on a job, knocked over) stay put,
-## unless nothing else can move.
+## Strength by difficulty, tuned with tools/ai_match.py (against Stockfish's
+## 1320 floor and each level against the next):
+##   depth: plies searched before the quiescence search (0 = look one move
+##          ahead and judge the position as it stands, recaptures unseen)
+##   noise: centipawns of slack: any move this close to the best may be played
+##   blunder: chance of just playing a random legal move
+##   budget: thinking time in ms
+const LEVELS := [
+	{"elo": 300, "depth": 0, "noise": 120, "blunder": 0.25, "budget": 300},
+	{"elo": 700, "depth": 1, "noise": 25, "blunder": 0.06, "budget": 600},
+	{"elo": 1200, "depth": 3, "noise": 15, "blunder": 0.05, "budget": 1500},
+]
+
+
+## Picks a move for the side to move. difficulty: 0 easy (~300 Elo), 1 normal
+## (~700), 2 hard (~1200). Pieces on `banned` squares (no car, away on a job,
+## knocked over) stay put, unless nothing else can move.
 func choose_move(src: ChessRules, difficulty: int, banned: Dictionary = {}) -> Dictionary:
 	var b := src.copy()
 	var moves := b.legal_moves()
@@ -184,24 +214,18 @@ func choose_move(src: ChessRules, difficulty: int, banned: Dictionary = {}) -> D
 			moves = free
 	nodes = 0
 	aborted = false
-	var max_depth := 1
-	var budget := 400
-	var noise := 0
-	match difficulty:
-		0:
-			max_depth = 1
-			noise = 90
-		1:
-			max_depth = 2
-			budget = 900
-			noise = 12
-		_:
-			max_depth = 4
-			budget = 1400
-			noise = 0
-	deadline = Time.get_ticks_msec() + budget
+	var lv: Dictionary = LEVELS[clampi(difficulty, 0, LEVELS.size() - 1)]
+	if randf() < float(lv["blunder"]):
+		return moves[randi() % moves.size()]
+	var max_depth: int = lv["depth"]
+	var noise: int = lv["noise"]
+	deadline = Time.get_ticks_msec() + int(lv["budget"])
 	_order(b, moves)
 	var best_scores := {}
+	if max_depth == 0:
+		# a beginner's glance: what's on the board right after my move?
+		for i in moves.size():
+			best_scores[i] = _glance(b, moves[i])
 	for depth in range(1, max_depth + 1):
 		var scores := {}
 		var alpha := -MATE * 2
@@ -209,7 +233,12 @@ func choose_move(src: ChessRules, difficulty: int, banned: Dictionary = {}) -> D
 		for i in moves.size():
 			var m: Dictionary = moves[i]
 			b.make_move(m)
-			var sc := -_search(b, depth - 1, -MATE * 2, -alpha + noise + 1, 1)
+			var sc := 0
+			if b.legal_moves().is_empty():
+				# mate, or a stalemate thrown away: the search below wouldn't notice either at depth 1
+				sc = MATE if b.in_check(b.side) else 0
+			else:
+				sc = -_search(b, depth - 1, -MATE * 2, -alpha + noise + 1, 1)
 			b.unmake_move()
 			if aborted:
 				completed = false
@@ -241,3 +270,13 @@ func choose_move(src: ChessRules, difficulty: int, banned: Dictionary = {}) -> D
 	if candidates.is_empty():
 		return moves[0]
 	return candidates[randi() % candidates.size()]
+
+
+## The position right after `m`, judged as it stands (mates spotted, replies not).
+func _glance(b: ChessRules, m: Dictionary) -> int:
+	b.make_move(m)
+	var sc := -evaluate(b)
+	if b.legal_moves().is_empty():
+		sc = MATE if b.in_check(b.side) else 0
+	b.unmake_move()
+	return sc

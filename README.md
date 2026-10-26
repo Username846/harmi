@@ -85,7 +85,7 @@ cross-origin isolation headers or service-worker tricks.
 | **Retreat** | Available in every labyrinth and ordinary duel. It calls the capture off and you choose another move. |
 | **Winning** | Checkmate the enemy king, then defeat it in a final duel. |
 
-Modes: **vs Computer** (Easy / Normal / Hard) or **Two Players** on the same device (each side has its own wallet, satchel and card deck).
+Modes: **vs Computer** (Easy, Normal and Hard play at roughly 300, 700 and 1200 Elo) or **Two Players** on the same device (each side has its own wallet, satchel and card deck).
 The board uses standard chess rules: castling, en passant, promotion, check, checkmate, stalemate,
 the fifty-move rule, threefold repetition and insufficient material. Off-board actions (jobs, races,
 dates, shots, card duels) use up your turn instead of a move; you can't take them while in check.
@@ -178,6 +178,7 @@ godot --headless --path . res://tests/team_battle.tscn   # party battles played 
 godot --headless --path . -s tests/test_survival.gd # survival balance across bots and difficulties
 godot --headless --path . res://tests/survival_flow.tscn
 godot --headless --path . -s tests/test_ai.gd       # AI timing per difficulty
+GODOT=godot python3 tools/ai_match.py level2 sf1320 60  # AI strength: matches vs Stockfish or another level
 python3 tools/gen_audio.py                          # re-render the music and sound effects
 python3 tools/gen_songs.py                          # re-render the title album and duel themes (needs flite + ffmpeg)
 ```

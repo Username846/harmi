@@ -56,7 +56,7 @@ func _ready() -> void:
 		ev.pressed = true
 		ev.position = p._close_rect().get_center()
 		p._gui_input(ev)
-		_check(is_equal_approx(p.dur, 20.0), "%s runs 20 s" % a["name"])
+		_check(is_equal_approx(p.dur, 10.0), "%s runs 10 s" % a["name"])
 		_check(paid[0] == AdPlayer.reward_for(a) and paid[0] >= 6, "closing %s pays %d" % [a["name"], paid[0]])
 	# the install button opens "the store": a spinner, then an error with an OK button
 	var shop := AdPlayer.new()

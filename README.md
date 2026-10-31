@@ -24,7 +24,7 @@ Off the board, your pieces have lives of their own:
   worse, and the gloomier an enemy, the **darker its labyrinth**. Take pieces on **dates** to cheer them up.
 * **Queen Cushy**: whenever a queen captures a piece, by any means, a cutscene shows her twerking on
   its grave to her own song. On dates she's all curves and attitude, straight out of "Back Rank Bounce".
-* **Ads and RAM**: watch 20-second full-screen ads for cash between moves. At the start of 30% of your
+* **Ads and RAM**: watch 10-second full-screen ads for cash between moves. At the start of 30% of your
   turns your device runs out of memory and sends you to the store, which sells RAM Sticks: each halves
   the warnings.
 * **Affection and babies**: dates fill a piece's affection meter, and so does watching a friend

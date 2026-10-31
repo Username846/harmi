@@ -1,6 +1,6 @@
 class_name AdPlayer
 extends Control
-## A full-screen fake mobile ad: twenty seconds of "gameplay footage" (the ad's
+## A full-screen fake mobile ad: ten seconds of "gameplay footage" (the ad's
 ## clips cut together and looped) with shouty captions, an install banner, then
 ## the end card. The close button only turns up when the countdown is done;
 ## closing it pays the reward. Tapping the install button "opens the store",
@@ -9,9 +9,9 @@ extends Control
 
 signal finished(reward: int)
 
-const LENGTH := 20.0 # every ad, before you get paid
+const LENGTH := 10.0 # every ad, before you get paid
 const END_CARD := 2.5
-const CUT := 4.5 # seconds of footage before the ad cuts to its next clip
+const CUT := 3.5 # seconds of footage before the ad cuts to its next clip
 const STORE_LOAD := 1.4
 ## What the store says when you try to look at the game. It never works.
 const STORE_ERRORS := [

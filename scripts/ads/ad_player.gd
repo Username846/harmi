@@ -15,7 +15,7 @@ const CUT := 3.5 # seconds of footage before the ad cuts to its next clip
 const STORE_LOAD := 1.4
 const DOWNLOAD_END := 4.6 # with the virus, "Downloading..." runs until here
 ## How often an ad's install button quietly downloads something nasty instead.
-const VIRUS_CHANCE := 0.05
+const VIRUS_CHANCE := 0.2
 ## What the store says when you try to look at the game. It never works.
 const STORE_ERRORS := [
 	["Something went wrong", "Couldn't connect to the store. Check your connection and try again.\n(Error code: 0x80072EFD)"],

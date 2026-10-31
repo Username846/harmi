@@ -27,7 +27,7 @@ Off the board, your pieces have lives of their own:
 * **Ads and RAM**: watch 10-second full-screen ads for cash between moves. At the start of 30% of your
   turns your device runs out of memory and sends you to the store, which sells RAM Sticks: each halves
   the warnings.
-  Be careful what you tap: once in a while an ad's install button downloads something it shouldn't,
+  Be careful what you tap: one ad in five has an install button that downloads something it shouldn't,
   and Wormy moves in until you buy an Antivirus.
 * **Affection and babies**: dates fill a piece's affection meter, and so does watching a friend
   nearby capture an enemy (it gets a crush on the hero). A piece with a full heart may have a **baby

@@ -15,6 +15,7 @@ func _ready() -> void:
 	Game.vs_ai = false
 	Game.new_game()
 	var cs := ChessScreen.new()
+	cs.ram_popups = false
 	add_child(cs)
 	var r := cs.rules
 	# revival: home square first, never giving check, pawns never on the back rank

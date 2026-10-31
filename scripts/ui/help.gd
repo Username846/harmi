@@ -12,6 +12,8 @@ Standard chess, but every piece is a long, strange figure. Tap (or click) one of
 
 [color=#e0aa4a][b]Money and the Shop[/b][/color]
 Odd jobs, captures and pink slips earn money. The [b]Shop[/b] sells goods, some actually useful: the [b]Double Move Upgrade[/b] (move twice in one turn), the [b]Sniper Rifle[/b] (one shot, no labyrinth), the [b]Drive-By Hotline[/b] (the pieces from the board next door roll up and take out enemies along one edge), Used Cars, Nitrous for races, Roses, a Headlamp, card Booster Packs, Spare Beyblades... and a gourd. Behind the counter sits a [b]Suitcase Nuke[/b], sold only to a side that's losing badly (down 10 or more points of material). Use it and the whole town goes up: the chess game ends for good, and the survivors have to make it in the ruins. Turn items like the Double Move and the Drive-By are used from the [b]Inventory[/b] button on your turn.
+Short on cash? Tap [b]Watch an Ad for Cash[/b] on your turn: sit through a 5-15 second ad for a game or product that doesn't exist and close it to collect $4-$9.
+Now and then your device will claim to be [b]out of memory[/b]. The shop sells [b]RAM Sticks[/b]: each one installed halves the warnings.
 
 [color=#e0aa4a][b]Moods[/b][/color]
 Every piece has a mood. It sinks whenever a piece sees its comrades turn to ash or lose their cars, especially nearby. Gloomy pieces fight worse in duels, earn less, race worse, and get rain clouds. The darker an enemy's mood, the [b]darker its labyrinth[/b] when you capture it: your light follows your pointer or your last tap. Dates and roses restore moods.

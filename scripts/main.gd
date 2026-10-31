@@ -44,6 +44,8 @@ func _ready() -> void:
 	if dbg.has("fen"):
 		await _start_game(dbg.get("ai", "1") == "1", 1)
 		chess.load_position(String(dbg["fen"]).uri_decode().replace("_", " "))
+		if dbg.has("oom"):
+			chess._out_of_memory() # &oom=1: the out-of-memory warning straight away
 		return
 	if dbg.has("nuke"):
 		_on_nuked({"square": "e8", "piece": "Black King", "side": "White"})
@@ -129,6 +131,13 @@ func _debug_screen() -> void:
 		"town": String(dbg.get("town", "Ashenford")).uri_decode().replace("_", " "),
 	}
 	Game.set_mood(info["date_id"], info["date_mood"])
+	if dbg["screen"] == "ad":
+		# ?screen=ad&ad=7: play one of the fake ads (0-based)
+		var ad := AdPlayer.new()
+		ad.setup(AdData.ADS[clampi(int(dbg.get("ad", "0")), 0, AdData.ADS.size() - 1)])
+		ad.finished.connect(func(_r: int): show_title())
+		layer.add_child(ad)
+		return
 	if dbg["screen"] == "twerk":
 		# ?screen=twerk&foe=3&own=1: the queen's victory twerk on a bishop's grave
 		var cut := TwerkCutscene.new()

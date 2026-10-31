@@ -52,6 +52,8 @@ const ITEMS := {
 		"desc": "Two random cards for the children's card game in the graveyard. Opened the moment you buy it."},
 	"beyblade": {"name": "Spare Beyblade", "icon": "beyblade", "color": Color(0.3, 0.6, 0.9), "use": [], "scope": "global",
 		"desc": "If your Beyblade volume control snaps off, this replaces it automatically."},
+	"ram": {"name": "RAM Stick", "icon": "ram", "color": Color(0.2, 0.55, 0.3), "use": [], "scope": "global", "instant": true,
+		"desc": "16 GB of genuine, downloadable memory. Installs itself the moment you buy it, and every stick halves the out-of-memory warnings."},
 	"nuke": {"name": "Suitcase Nuke", "icon": "nuke", "color": Color(0.95, 0.8, 0.15), "use": ["turn"], "scope": "global", "unique": true,
 		"desc": "For when it's hopeless. Only sold to commanders who are down 10 or more points of material. Use it from the Inventory on your turn and the town, the board and everyone on it are gone: the chess game ends for good, and whoever's left has to survive in the ruins."},
 	"gourd": {"name": "Decorative Gourd", "icon": "gourd", "color": Color(0.9, 0.6, 0.2), "use": [], "scope": "global",
@@ -112,13 +114,17 @@ const SHOP := [
 	["nitrous", 12], ["roses", 8], ["headlamp", 15], ["booster", 10],
 	["beyblade", 4], ["potion", 6], ["ether", 5], ["whetstone", 10],
 	["ward", 10], ["gourd", 3], ["spoon", 2], ["pet_rock", 5],
-	["nuke", 30],
+	["ram", 12], ["nuke", 30],
 ]
+## The chance an out-of-memory warning greets you at the start of a turn, before RAM.
+const OOM_CHANCE := 0.3
 ## The Suitcase Nuke is only sold to a side this far behind on material.
 const NUKE_GAP := 10
 
 var active_side := 0
-var material := [39, 39] # each side's material on the board (no kings), kept up to date by the chess screen
+var material := [39, 39]
+var ram_sticks := 0 # installed in "the device", so shared by both sides
+var _ad_bag: Array = [] # ads still to show before any repeats # each side's material on the board (no kings), kept up to date by the chess screen
 var _invs: Array = [{}, {}]
 var _orders: Array = [[], []]
 var wallets: Array = [0, 0]
@@ -171,6 +177,7 @@ func new_game() -> void:
 	next_piece_id = 200
 	yugi_banished = false
 	material = [39, 39]
+	ram_sticks = 0
 	grave_repairs = {}
 	gravekeeper = -1
 	keeper_cooldown = 0
@@ -216,6 +223,18 @@ func remove_item(id: String, n: int = 1) -> bool:
 func material_deficit(side: int = -1) -> int:
 	var me := active_side if side < 0 else side
 	return maxi(0, int(material[1 - me]) - int(material[me]))
+
+
+func oom_chance() -> float:
+	return OOM_CHANCE * pow(0.5, ram_sticks)
+
+
+## The next fake ad, shuffled so you see all fifty before any comes round again.
+func next_ad() -> Dictionary:
+	if _ad_bag.is_empty():
+		_ad_bag = range(AdData.ADS.size())
+		_ad_bag.shuffle()
+	return AdData.ADS[int(_ad_bag.pop_back())]
 
 
 func losing_badly(side: int = -1) -> bool:

@@ -166,6 +166,12 @@ static func draw_icon(ci: CanvasItem, id: String, r: Rect2, t: float = 0.0) -> v
 			_shape(ci, r, [Vector2(0.4, 0.4), Vector2(0.62, 0.34), Vector2(0.63, 0.4), Vector2(0.41, 0.46)], Color(0.15, 0.15, 0.17), line, w)
 			ci.draw_line(_p(r, 0.46, 0.55), _p(r, 0.44, 0.66), line, w * 1.5, true)
 			ci.draw_circle(_p(r, 0.62, 0.37), r.size.x * 0.035, Color(0.6, 0.85, 1.0))
+		"ram":
+			_shape(ci, r, [Vector2(0.06, 0.34), Vector2(0.94, 0.34), Vector2(0.94, 0.66), Vector2(0.06, 0.66)], col, line, w)
+			for i in 4:
+				ci.draw_rect(Rect2(_p(r, 0.12 + i * 0.2, 0.39), r.size * Vector2(0.15, 0.17)), Color(0.1, 0.1, 0.12))
+			for i in 12:
+				ci.draw_rect(Rect2(_p(r, 0.09 + i * 0.07, 0.6), r.size * Vector2(0.04, 0.05)), Color(0.95, 0.8, 0.3))
 		"nuke":
 			# a battered suitcase with a radiation trefoil
 			_shape(ci, r, [Vector2(0.1, 0.3), Vector2(0.9, 0.3), Vector2(0.9, 0.84), Vector2(0.1, 0.84)], Color(0.32, 0.3, 0.26), line, w)

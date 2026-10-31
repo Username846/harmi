@@ -19,6 +19,7 @@ const QUIPS := {
 	"spoon": "Truly commemorative.",
 	"pet_rock": "His name is Gerald. Be good to him.",
 	"nuke": "Don't tell me what it's for. I don't want to know.",
+	"ram": "Installed. I blew on the contacts for you.",
 }
 const GENERIC := ["Pleasure doing business.", "No refunds!", "Tell your friends. Or don't.", "Enjoy. Responsibly."]
 
@@ -149,7 +150,11 @@ func _on_buy() -> void:
 	if not Game.spend(_price(id)):
 		return
 	var note := ""
-	if id == "booster":
+	if id == "ram":
+		Game.ram_sticks += 1
+		note = "Installed. Out-of-memory warnings now %d%%." % roundi(Game.oom_chance() * 100.0)
+		keeper.text = "\"%s\"" % QUIPS["ram"]
+	elif id == "booster":
 		var cards: Array = CardData.booster()
 		Game.add_cards(cards)
 		var names: Array = []

@@ -31,6 +31,9 @@ var buttons: GridContainer
 var inv_btn: Button
 var shop_btn: Button
 var grave_btn: Button
+var ad_btn: Button
+## Tests switch the out-of-memory warnings off so turns aren't interrupted.
+var ram_popups := true
 var beyblade: BeybladeButton
 var overlay_layer: Control
 
@@ -77,6 +80,9 @@ func _ready() -> void:
 	shop_btn = _panel_button("Shop", _show_shop)
 	grave_btn = _panel_button("Graveyard", _show_graveyard)
 	_panel_button("Menu", _show_menu)
+	ad_btn = UI.button("Watch an Ad for Cash", _watch_ad, 46.0)
+	ad_btn.add_theme_color_override("font_color", UI.GREEN)
+	vb.add_child(ad_btn)
 	tray = Control.new()
 	tray.custom_minimum_size = Vector2(0, 84)
 	tray.draw.connect(_draw_tray)
@@ -278,6 +284,8 @@ func _start_turn() -> void:
 		board.interactive = true
 		status_label.text = ("Check! " if board.check_sq >= 0 else "") + "%s to move" % who
 		sub_label.text = "Tap a piece to open its action menu."
+		if ram_popups and turn_no > 0 and randf() < Game.oom_chance():
+			_out_of_memory()
 	else:
 		state = "busy"
 		board.interactive = false
@@ -1692,13 +1700,49 @@ func _show_inventory() -> void:
 	add_child(inv)
 
 
-func _show_shop() -> void:
+func _show_shop(select: String = "") -> void:
 	if state == "encounter" or state == "nuked":
 		return
 	var shop := ShopPanel.new()
+	if select != "":
+		shop.call_deferred("_select", select)
 	shop.bought.connect(func(id: String, note: String):
 		_log("[color=#6fc06a]Bought: %s.%s[/color]" % [Game.item_name(id), " " + note if note != "" else ""]))
 	add_child(shop)
+
+
+## "Your device is out of memory." It isn't. The store would still like to sell you RAM.
+func _out_of_memory() -> void:
+	var m := Modal.new("Out of Memory", 440.0)
+	m.add_text("Your device is running low on memory. Ashen Gambit may close unexpectedly.", 18)
+	var used := 97.0 + randf() * 2.9
+	var bar := Control.new()
+	bar.custom_minimum_size = Vector2(0, 30)
+	bar.draw.connect(func():
+		var r := Rect2(Vector2.ZERO, bar.size)
+		bar.draw_rect(r, Color(0.2, 0.2, 0.22))
+		bar.draw_rect(Rect2(r.position, Vector2(r.size.x * used / 100.0, r.size.y)), UI.RED)
+		bar.draw_string(ThemeDB.fallback_font, Vector2(8, 21), "Memory used: %.1f%%  (3.9 GB of 4 GB)" % used, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(1, 1, 1)))
+	m.add(bar)
+	m.add_text("Go to the store to buy more RAM.", 18, UI.GOLD)
+	m.add_buttons([["Go to Store", func():
+		m.close()
+		_show_shop("ram")], ["Ignore", m.close]])
+	add_child(m)
+
+
+func _watch_ad() -> void:
+	if state != "idle" or not _is_human(rules.side):
+		_notice("Ads can only be watched on your own turn.")
+		return
+	var a := Game.next_ad()
+	var player := AdPlayer.new()
+	player.setup(a)
+	var side := Game.active_side
+	player.finished.connect(func(reward: int):
+		Game.add_money(reward, side)
+		_log("[color=#6fc06a]You watched an ad for %s. +$%d[/color]" % [String(a["name"]), reward]))
+	add_child(player)
 
 
 func _show_menu() -> void:

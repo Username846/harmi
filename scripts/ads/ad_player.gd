@@ -1,14 +1,29 @@
 class_name AdPlayer
 extends Control
-## A full-screen fake mobile ad: a few seconds of "gameplay footage" with shouty
-## captions, an install banner, then the end card. The close button only turns
-## up when the countdown is done; closing it pays the reward. A cheerful,
-## slightly annoying jingle loops underneath.
+## A full-screen fake mobile ad: twenty seconds of "gameplay footage" (the ad's
+## clips cut together and looped) with shouty captions, an install banner, then
+## the end card. The close button only turns up when the countdown is done;
+## closing it pays the reward. Tapping the install button "opens the store",
+## which never quite works. A cheerful, slightly annoying jingle loops underneath.
 ## setup(ad) before adding; emits finished(reward) and frees itself.
 
 signal finished(reward: int)
 
-const END_CARD := 2.2
+const LENGTH := 20.0 # every ad, before you get paid
+const END_CARD := 2.5
+const CUT := 4.5 # seconds of footage before the ad cuts to its next clip
+const STORE_LOAD := 1.4
+## What the store says when you try to look at the game. It never works.
+const STORE_ERRORS := [
+	["Something went wrong", "Couldn't connect to the store. Check your connection and try again.\n(Error code: 0x80072EFD)"],
+	["App not available", "This item isn't available in your country or region."],
+	["Error", "Error retrieving information from server.\n[DF-DFERH-01]"],
+	["Cannot connect", "A secure connection to the server cannot be made. Please try again later."],
+	["Item unavailable", "The item you were attempting to view could not be found."],
+	["Incompatible", "Your device isn't compatible with this version."],
+	["Download failed", "Insufficient storage available. Free up some space and try again."],
+	["Store", "Request timed out. (408)"],
+]
 const BANNER_H := 0.14 # of the shorter side
 const TOP_H := 0.1
 
@@ -16,19 +31,19 @@ var ad: Dictionary = {}
 var dur := 8.0
 var reward := 5
 var t := 0.0
-var _toast := ""
-var _toast_t := 0.0
+var _store_t := -1.0 # time since the install button was tapped, -1 when no store dialog
+var _store_err: Array = []
 var _player: AudioStreamPlayer
 var _done := false
 
 
 static func reward_for(a: Dictionary) -> int:
-	return 2 + int(float(a.get("dur", 8)) * 0.5)
+	return 6 + absi(String(a.get("name", "")).hash()) % 5
 
 
 func setup(a: Dictionary) -> void:
 	ad = a
-	dur = clampf(float(a.get("dur", 8)), 5.0, 15.0)
+	dur = LENGTH
 	reward = reward_for(a)
 
 
@@ -47,7 +62,8 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	t += delta
-	_toast_t = maxf(0.0, _toast_t - delta)
+	if _store_t >= 0.0:
+		_store_t += delta
 	queue_redraw()
 
 
@@ -73,11 +89,27 @@ func _gui_input(event: InputEvent) -> void:
 		return
 	accept_event()
 	var p: Vector2 = event.position
+	if _store_t >= 0.0:
+		if _store_t >= STORE_LOAD and _ok_rect().grow(8.0).has_point(p):
+			_store_t = -1.0
+		return
 	if t >= dur and _close_rect().grow(12.0).has_point(p):
 		_finish()
 	elif _cta_rect().has_point(p):
-		_toast = "This is a fake ad. There is nothing to install. There never was."
-		_toast_t = 2.2
+		_store_t = 0.0
+		_store_err = STORE_ERRORS[randi() % STORE_ERRORS.size()]
+
+
+func _dialog_rect() -> Rect2:
+	var u := _unit()
+	var w := minf(size.x * 0.86, u * 0.95)
+	return Rect2(Vector2((size.x - w) * 0.5, size.y * 0.5 - u * 0.2), Vector2(w, u * 0.4))
+
+
+func _ok_rect() -> Rect2:
+	var d := _dialog_rect()
+	var u := _unit()
+	return Rect2(Vector2(d.end.x - u * 0.2, d.end.y - u * 0.1), Vector2(u * 0.16, u * 0.08))
 
 
 func _finish() -> void:
@@ -98,12 +130,16 @@ func _draw() -> void:
 	var scenes: Array = ad.get("scenes", [["product", ""]])
 	var play := dur - END_CARD
 	if t < play:
-		var per := play / scenes.size()
-		var i := mini(int(t / per), scenes.size() - 1)
-		var st := t - i * per
+		# cut between the ad's clips every few seconds, looping them, each picking up where it left off
+		var n := scenes.size()
+		var cuts := maxi(n, ceili(play / CUT))
+		var per := play / cuts
+		var seg := mini(int(t / per), cuts - 1)
+		var i := seg % n
+		var st := t - seg * per
 		# the clip sits between the chrome strip on top and the install banner below
 		var area := Rect2(Vector2(0, u * TOP_H), size - Vector2(0, u * (BANNER_H + TOP_H)))
-		AdScenes.draw(self, String(scenes[i][0]), area, st + i * 1.7, ad)
+		AdScenes.draw(self, String(scenes[i][0]), area, st + (seg / n) * per + i * 1.7, ad)
 		if st < 0.12:
 			draw_rect(area, Color(1, 1, 1, 0.8 * (1.0 - st / 0.12)))
 		var caption := String(scenes[i][1])
@@ -116,11 +152,28 @@ func _draw() -> void:
 	else:
 		_end_card(u, c)
 	_chrome(u)
-	if _toast_t > 0.0:
-		var a := minf(1.0, _toast_t * 3.0)
-		var tr := Rect2(Vector2(size.x * 0.5 - u * 0.45, size.y * 0.5 - u * 0.06), Vector2(u * 0.9, u * 0.12))
-		AdScenes.box(self, tr, Color(0.1, 0.1, 0.12, 0.92 * a), 12)
-		AdScenes.text(self, _toast, tr.get_center(), int(u * 0.032), Color(1, 1, 1, a), 0, tr.size.x - 20)
+	if _store_t >= 0.0:
+		_store_dialog(u)
+
+
+## The store, opening over the ad: a spinner, then an error.
+func _store_dialog(u: float) -> void:
+	draw_rect(Rect2(Vector2.ZERO, size), Color(0, 0, 0, 0.55))
+	var font := ThemeDB.fallback_font
+	if _store_t < STORE_LOAD:
+		var c := size * 0.5
+		var box_r := Rect2(c - Vector2(u * 0.22, u * 0.09), Vector2(u * 0.44, u * 0.18))
+		AdScenes.box(self, box_r, Color(0.98, 0.98, 0.99), 14)
+		draw_arc(c - Vector2(u * 0.12, 0), u * 0.035, _store_t * 7.0, _store_t * 7.0 + PI * 1.4, 20, Color(0.15, 0.5, 0.95), 5.0, true)
+		draw_string(font, c + Vector2(-u * 0.05, u * 0.012), "Loading...", HORIZONTAL_ALIGNMENT_LEFT, -1, int(u * 0.035), Color(0.2, 0.2, 0.25))
+		return
+	var d := _dialog_rect()
+	AdScenes.box(self, d, Color(0.98, 0.98, 0.99), 16)
+	var pad := u * 0.05
+	draw_string(font, d.position + Vector2(pad, pad + u * 0.03), String(_store_err[0]), HORIZONTAL_ALIGNMENT_LEFT, d.size.x - pad * 2.0, int(u * 0.045), Color(0.1, 0.1, 0.12))
+	draw_multiline_string(font, d.position + Vector2(pad, pad + u * 0.1), String(_store_err[1]), HORIZONTAL_ALIGNMENT_LEFT, d.size.x - pad * 2.0, int(u * 0.032), -1, Color(0.35, 0.35, 0.4))
+	var ok := _ok_rect()
+	draw_string(font, ok.position + Vector2(0, ok.size.y * 0.65), "OK", HORIZONTAL_ALIGNMENT_CENTER, ok.size.x, int(u * 0.04), Color(0.15, 0.5, 0.95))
 
 
 func _icon(r: Rect2, c: Array) -> void:

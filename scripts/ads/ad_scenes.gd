@@ -5,7 +5,8 @@ extends RefCounted
 ## filling `rect` at `t` seconds in, coloured by the ad's palette (ad.c).
 
 const IDS := ["runner", "pull_pin", "match3", "merge", "idle", "hole", "stack", "racing", "shooter", "castle",
-	"slots", "fishing", "word", "draw_save", "ball_sort", "chat", "food", "product", "slice", "cards"]
+	"slots", "fishing", "word", "draw_save", "ball_sort", "chat", "food", "product", "slice", "cards",
+	"jumper", "rope", "basket"]
 
 
 static func draw(ci: CanvasItem, id: String, r: Rect2, t: float, ad: Dictionary) -> void:
@@ -30,6 +31,9 @@ static func draw(ci: CanvasItem, id: String, r: Rect2, t: float, ad: Dictionary)
 		"food": _food(ci, r, t, c)
 		"slice": _slice(ci, r, t, c)
 		"cards": _cards(ci, r, t, c)
+		"jumper": _jumper(ci, r, t, c)
+		"rope": _rope(ci, r, t, c)
+		"basket": _basket(ci, r, t, c)
 		_: _product(ci, r, t, c, ad)
 
 
@@ -120,6 +124,7 @@ static func _runner(ci: CanvasItem, r: Rect2, t: float, c: Array, ad: Dictionary
 		var y := lerpf(hz, r.end.y, z * z)
 		ci.draw_line(Vector2(cx, y), Vector2(cx, y + 6 + z * 30), Color(1, 1, 1), 2 + z * 6)
 	# gates rush toward you every 2 seconds: good on one side, bad on the other
+	t = fposmod(t, 12.0)
 	var phase := fposmod(t, 2.0) / 2.0
 	var gy := lerpf(hz, r.end.y - u * 0.2, phase * phase)
 	var gw := lerpf(u * 0.06, u * 0.5, phase * phase)
@@ -279,7 +284,7 @@ static func big_number(v: float) -> String:
 static func _idle(ci: CanvasItem, r: Rect2, t: float, c: Array) -> void:
 	var u := minf(r.size.x, r.size.y)
 	sky(ci, r, c[1].lightened(0.2), c[1].darkened(0.3))
-	var money := pow(10.0, 1.0 + t * 1.3)
+	var money := pow(10.0, 1.0 + fposmod(t, 14.0) * 1.3)
 	text(ci, "$" + big_number(money), r.get_center() - Vector2(0, u * 0.36), int(u * 0.11), c[2], 8)
 	# the shop: tap, tap, tap
 	var shop := r.get_center() + Vector2(0, u * 0.02)
@@ -311,6 +316,7 @@ static func _hole(ci: CanvasItem, r: Rect2, t: float, c: Array) -> void:
 		ci.draw_rect(Rect2(r.position.x + i * grid - grid * 0.12, r.position.y, grid * 0.24, r.size.y), Color(0.35, 0.36, 0.4))
 	for j in int(r.size.y / grid) + 2:
 		ci.draw_rect(Rect2(r.position.x, r.position.y + j * grid - grid * 0.12, r.size.x, grid * 0.24), Color(0.35, 0.36, 0.4))
+	t = fposmod(t, 12.0)
 	var hp := r.get_center() + Vector2(sin(t * 0.9) * r.size.x * 0.3, sin(t * 1.4) * r.size.y * 0.25)
 	var hr := u * (0.05 + t * 0.012)
 	var eaten := 0
@@ -335,6 +341,7 @@ static func _hole(ci: CanvasItem, r: Rect2, t: float, c: Array) -> void:
 static func _stack(ci: CanvasItem, r: Rect2, t: float, c: Array) -> void:
 	var u := minf(r.size.x, r.size.y)
 	sky(ci, r, c[0].lightened(0.3), c[1].lightened(0.2))
+	t = fposmod(t, 14.0)
 	var n := int(t / 0.7)
 	var bh := u * 0.06
 	var cam := maxf(0.0, n - 8) * bh
@@ -402,16 +409,14 @@ static func _shooter(ci: CanvasItem, r: Rect2, t: float, c: Array) -> void:
 	var gun_y := ground - u * 0.21
 	ci.draw_rect(Rect2(hero.x + u * 0.02, gun_y - u * 0.012, u * 0.1, u * 0.024), Color(0.2, 0.2, 0.2))
 	var kills := 0
-	for i in 8:
-		var spawn := i * 0.7
-		var age := t - spawn
+	for i in 9:
+		var age := fposmod(t - i * 0.7, 6.3)
 		if age < 0.0:
 			continue
 		var x := r.end.x + u * 0.05 - age * u * 0.25
 		var die := 1.4 + hash01(i) * 0.6
 		var zcol := Color(0.45, 0.75, 0.35)
 		if age > die:
-			kills += 1
 			var fall := minf(1.0, (age - die) * 4.0)
 			_stick(ci, Vector2(x + (age - die) * u * 0.25, ground), u * 0.28, zcol.darkened(0.3), 0.0, fall * 3.0)
 			if age - die < 0.5:
@@ -421,6 +426,7 @@ static func _shooter(ci: CanvasItem, r: Rect2, t: float, c: Array) -> void:
 	if fposmod(t, 0.2) < 0.08:
 		ci.draw_circle(Vector2(hero.x + u * 0.13, gun_y), u * 0.03, Color(1, 0.85, 0.3))
 		ci.draw_line(Vector2(hero.x + u * 0.14, gun_y), Vector2(r.end.x, gun_y + (hash01(int(t * 50)) - 0.5) * u * 0.05), Color(1, 0.95, 0.6, 0.8), 2.0)
+	kills = int(t * 1.4)
 	text(ci, "KILLS: %d" % (kills * 7 + int(t)), Vector2(r.get_center().x, r.position.y + u * 0.08), int(u * 0.06), c[2], 6)
 
 
@@ -643,6 +649,7 @@ static func _chat(ci: CanvasItem, r: Rect2, t: float, c: Array, lines: Array) ->
 	box(ci, Rect2(phone.position, Vector2(phone.size.x, u * 0.08)), c[1], u * 0.03)
 	ci.draw_circle(phone.position + Vector2(u * 0.05, u * 0.04), u * 0.025, c[0])
 	text(ci, "online now", phone.position + Vector2(phone.size.x * 0.5, u * 0.04), int(u * 0.03), Color(1, 1, 1), 0)
+	t = fposmod(t, lines.size() * 0.9 + 3.0)
 	var shown := mini(lines.size(), int(t / 0.9) + 1)
 	var y := phone.position.y + u * 0.12
 	var font := ThemeDB.fallback_font
@@ -759,6 +766,91 @@ static func _cards(ci: CanvasItem, r: Rect2, t: float, c: Array) -> void:
 		text(ci, "LEGENDARY!", r.get_center() - Vector2(0, u * 0.33), int(u * 0.1 * pop(k, 2.2)), c[1], 8)
 
 
+static func _jumper(ci: CanvasItem, r: Rect2, t: float, c: Array) -> void:
+	var u := minf(r.size.x, r.size.y)
+	sky(ci, r, c[0].lightened(0.35), c[0])
+	var climb := t * u * 0.35
+	var gap := u * 0.16
+	var first := int(climb / gap) - 1
+	for k in 9:
+		var i := first + k
+		var y := r.end.y - (i * gap - climb) - u * 0.05
+		var x := r.position.x + r.size.x * (0.15 + 0.7 * hash01(i, 4))
+		var col: Color = c[1] if i % 5 else c[2]
+		box(ci, Rect2(x - u * 0.08, y, u * 0.16, u * 0.025), col, 6)
+		if i % 7 == 3:
+			coin(ci, Vector2(x, y - u * 0.05), u * 0.025, t * 5.0 + i)
+	# the hero bounces from platform to platform
+	var hop := fposmod(t * 2.0, 1.0)
+	var i2 := int(t * 2.0)
+	var y0 := r.end.y - u * 0.05 - u * 0.25
+	var px := r.position.x + r.size.x * (0.15 + 0.7 * lerpf(hash01(i2, 4), hash01(i2 + 1, 4), hop))
+	var py := y0 - sin(hop * PI) * u * 0.18
+	ci.draw_circle(Vector2(px, py), u * 0.045, Color(0.95, 0.85, 0.3))
+	ci.draw_circle(Vector2(px + u * 0.015, py - u * 0.01), u * 0.01, Color(0.1, 0.1, 0.1))
+	ci.draw_line(Vector2(px - u * 0.03, py + u * 0.04), Vector2(px - u * 0.04, py + u * 0.07), Color(0.1, 0.1, 0.1), 3)
+	ci.draw_line(Vector2(px + u * 0.03, py + u * 0.04), Vector2(px + u * 0.04, py + u * 0.07), Color(0.1, 0.1, 0.1), 3)
+	text(ci, "%d m" % int(t * 12.0), Vector2(r.get_center().x, r.position.y + u * 0.08), int(u * 0.07), Color(1, 1, 1), 6)
+
+
+static func _rope(ci: CanvasItem, r: Rect2, t: float, c: Array) -> void:
+	var u := minf(r.size.x, r.size.y)
+	sky(ci, r, c[0].lightened(0.4), c[0].lightened(0.1))
+	var k := fposmod(t, 4.0)
+	var pin := Vector2(r.get_center().x - u * 0.1, r.position.y + u * 0.1)
+	var swing := sin(k * 3.0) * 0.6 * maxf(0.0, 1.0 - k * 0.3)
+	var hang := pin + Vector2.from_angle(PI / 2 + swing) * u * 0.3
+	var cut := k > 1.6
+	var candy := hang
+	if cut:
+		var f := k - 1.6
+		candy = hang + Vector2(f * u * 0.06, f * f * u * 0.5)
+	else:
+		ci.draw_line(pin, hang, Color(0.55, 0.4, 0.2), 4)
+		hand(ci, pin.lerp(hang, 0.5) + Vector2(u * 0.12 - k * u * 0.06, 0), u * 0.1, k > 1.4)
+	ci.draw_circle(pin, u * 0.015, Color(0.4, 0.4, 0.45))
+	# the little monster waiting with its mouth open
+	var mon := Vector2(r.get_center().x, r.end.y - u * 0.15)
+	var eaten := cut and candy.y >= mon.y - u * 0.05
+	ci.draw_circle(mon, u * 0.1, c[1])
+	ci.draw_circle(mon + Vector2(-u * 0.035, -u * 0.04), u * 0.02, Color(1, 1, 1))
+	ci.draw_circle(mon + Vector2(u * 0.035, -u * 0.04), u * 0.02, Color(1, 1, 1))
+	ci.draw_circle(mon + Vector2(-u * 0.035, -u * 0.04), u * 0.009, Color(0.1, 0.1, 0.1))
+	ci.draw_circle(mon + Vector2(u * 0.035, -u * 0.04), u * 0.009, Color(0.1, 0.1, 0.1))
+	var mouth := u * (0.045 if not eaten else 0.015)
+	ci.draw_circle(mon + Vector2(0, u * 0.035), mouth, Color(0.35, 0.05, 0.1))
+	if not eaten:
+		ci.draw_circle(candy, u * 0.04, c[2])
+		ci.draw_line(candy - Vector2(u * 0.06, 0), candy + Vector2(u * 0.06, 0), c[2].darkened(0.2), u * 0.02)
+	else:
+		text(ci, "YUM!", mon - Vector2(0, u * 0.2), int(u * 0.09 * pop(k, 2.6)), c[2], 8)
+		for i in 3:
+			star(ci, mon + Vector2((i - 1) * u * 0.12, -u * 0.32), u * 0.04, Color(1, 0.85, 0.2), t)
+
+
+static func _basket(ci: CanvasItem, r: Rect2, t: float, c: Array) -> void:
+	var u := minf(r.size.x, r.size.y)
+	sky(ci, r, c[0].darkened(0.3), c[0].darkened(0.6))
+	ci.draw_rect(Rect2(r.position.x, r.end.y - u * 0.1, r.size.x, u * 0.1), Color(0.75, 0.5, 0.3))
+	var hoop := Vector2(r.end.x - r.size.x * 0.25, r.position.y + r.size.y * 0.35)
+	ci.draw_rect(Rect2(hoop + Vector2(u * 0.06, -u * 0.14), Vector2(u * 0.02, u * 0.2)), Color(0.95, 0.95, 0.95))
+	var k := fposmod(t, 1.6)
+	var shooter := Vector2(r.position.x + r.size.x * 0.2, r.end.y - u * 0.2)
+	var f := clampf(k / 1.0, 0.0, 1.0)
+	var ball := shooter.lerp(hoop, f) - Vector2(0, sin(f * PI) * u * 0.3)
+	if k > 1.0:
+		ball = hoop + Vector2(0, (k - 1.0) * u * 0.5)
+	ci.draw_circle(ball, u * 0.04, Color(0.95, 0.5, 0.15))
+	ci.draw_arc(ball, u * 0.04, 0, TAU, 16, Color(0.3, 0.15, 0.05), 2.0)
+	ci.draw_line(ball - Vector2(u * 0.04, 0), ball + Vector2(u * 0.04, 0), Color(0.3, 0.15, 0.05), 2.0)
+	ci.draw_line(hoop - Vector2(u * 0.06, 0), hoop + Vector2(u * 0.06, 0), Color(0.9, 0.2, 0.15), 4)
+	for i in 5:
+		ci.draw_line(hoop + Vector2(-u * 0.06 + i * u * 0.03, 0), hoop + Vector2(-u * 0.03 + i * u * 0.015, u * 0.08), Color(1, 1, 1, 0.8), 2)
+	if k > 1.0:
+		text(ci, ["SWISH!", "3 POINTER!", "ON FIRE!"][int(t / 1.6) % 3], hoop - Vector2(u * 0.15, u * 0.2), int(u * 0.07 * pop(k, 1.0)), c[2], 6)
+	text(ci, "%d PTS" % (int(t / 1.6) * 3), Vector2(r.get_center().x, r.position.y + u * 0.08), int(u * 0.06), Color(1, 1, 1), 6)
+
+
 # --- products ------------------------------------------------------------------------
 
 static func _product(ci: CanvasItem, r: Rect2, t: float, c: Array, ad: Dictionary) -> void:
@@ -854,6 +946,10 @@ static func product_shape(ci: CanvasItem, obj: String, p: Vector2, s: float, t: 
 			for i in 20:
 				ci.draw_rect(Rect2(p + Vector2(-s * 0.46 + i * s * 0.046, s * 0.1), Vector2(s * 0.03, s * 0.04)), c[1])
 			text(ci, "64 GB", p - Vector2(0, s * 0.22), int(s * 0.1), c[2], 4)
+		"pawn", "knight":
+			for i in 3:
+				ci.draw_circle(p + Vector2(0, -s * 0.05), s * (0.42 - i * 0.08), Color(c[2], 0.12))
+			PieceArt.draw_piece(ci, 1 if obj == "pawn" else 2, true, p.x, p.y + s * 0.4, s * (0.85 if obj == "pawn" else 0.55))
 		_:
 			# a cardboard box with a big question mark
 			var b := Rect2(p - Vector2(s * 0.35, s * 0.25), Vector2(s * 0.7, s * 0.55))

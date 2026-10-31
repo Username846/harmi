@@ -24,9 +24,9 @@ Off the board, your pieces have lives of their own:
   worse, and the gloomier an enemy, the **darker its labyrinth**. Take pieces on **dates** to cheer them up.
 * **Queen Cushy**: whenever a queen captures a piece, by any means, a cutscene shows her twerking on
   its grave to her own song. On dates she's all curves and attitude, straight out of "Back Rank Bounce".
-* **Ads and RAM**: watch full-screen fake mobile ads (54 of them, for games and products that don't
-  exist, 5-15 seconds each) for pocket money. At the start of 30% of your turns your device claims to be
-  out of memory and sends you to the store, which sells RAM Sticks: each halves the warnings.
+* **Ads and RAM**: watch 20-second full-screen ads for cash between moves. At the start of 30% of your
+  turns your device runs out of memory and sends you to the store, which sells RAM Sticks: each halves
+  the warnings.
 * **Affection and babies**: dates fill a piece's affection meter, and so does watching a friend
   nearby capture an enemy (it gets a crush on the hero). A piece with a full heart may have a **baby
   piece** with its crush on a square beside them.
@@ -178,7 +178,7 @@ godot --headless --path . -s tests/test_cards.gd    # card rules and Yugi's win 
 godot --headless --path . res://tests/card_screen.tscn
 godot --headless --path . res://tests/grave_restore.tscn # For Reals confirm, repairs, gravekeeper raises
 godot --headless --path . res://tests/team_battle.tscn   # party battles played to the end
-godot --headless --path . res://tests/ads.tscn           # draws every fake ad, pays out, RAM maths
+godot --headless --path . res://tests/ads.tscn           # draws every ad, the store dialog, payouts, RAM maths
 godot --headless --path . -s tests/test_survival.gd # survival balance across bots and difficulties
 godot --headless --path . res://tests/survival_flow.tscn
 godot --headless --path . -s tests/test_ai.gd       # AI timing per difficulty
@@ -196,6 +196,6 @@ godot --headless --path . --export-release "Web" docs/index.html
 Testing shortcuts for the web build (append to the URL):
 `?lab=trench` (also `well`, `barracks`, `tower`, `undercroft`, `chapel`, `scriptorium`, optionally `&room=<id>`),
 `?fight=5` (foe piece type 1–6, optionally `&hero=2`, and `&party=3,1&foes=1,1` for a team battle), `&fmood=10` (the foe's mood, for gloomy labyrinths and duels),
-`?screen=race` (also `date`, `cards` (`&reals=1` for For Reals), `shadow`, `twerk`, `ad` (`&ad=N` picks one of the fake ads), with `&hero=2&foe=4&hmood=72&fmood=30&own=1`),
+`?screen=race` (also `date`, `cards` (`&reals=1` for For Reals), `shadow`, `twerk`, `ad` (`&ad=N` picks one of the 104 ads), with `&hero=2&foe=4&hmood=72&fmood=30&own=1`),
 `?fen=<FEN with _ for spaces>` to start from a position (`&oom=1` raises the out-of-memory warning at once), `&money=200&items=sniper,driveby` to start rich,
 and `&grave=2,4` to start with a knight and a rook in your graveyard.

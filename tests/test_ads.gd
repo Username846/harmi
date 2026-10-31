@@ -21,18 +21,16 @@ func _ready() -> void:
 		for a in AdData.ADS:
 			for sc in a["scenes"]:
 				_check(AdScenes.IDS.has(sc[0]), "%s uses unknown scene %s" % [a["name"], sc[0]])
-				for tt in [0.0, 0.7, 1.9, 3.3, 5.1, 8.8]:
+				for tt in [0.0, 0.7, 1.9, 3.3, 5.1, 8.8, 13.4, 19.6]:
 					AdScenes.draw(canvas, String(sc[0]), Rect2(Vector2.ZERO, canvas.size), tt, a)
 					drawn += 1)
 	canvas.queue_redraw()
 	for i in 3:
 		await get_tree().process_frame
 	_check(drawn > 0, "the scenes were drawn")
-	_check(AdData.ADS.size() >= 50, "at least fifty ads")
+	_check(AdData.ADS.size() >= 100, "at least a hundred ads")
 	var names := {}
 	for a in AdData.ADS:
-		var d := float(a["dur"])
-		_check(d >= 5.0 and d <= 15.0, "%s lasts 5-15 s" % a["name"])
 		_check(not names.has(a["name"]), "ad %s is unique" % a["name"])
 		names[a["name"]] = true
 	# every ad comes round once before any repeats
@@ -58,7 +56,30 @@ func _ready() -> void:
 		ev.pressed = true
 		ev.position = p._close_rect().get_center()
 		p._gui_input(ev)
-		_check(paid[0] == AdPlayer.reward_for(a) and paid[0] >= 4, "closing %s pays %d" % [a["name"], paid[0]])
+		_check(is_equal_approx(p.dur, 20.0), "%s runs 20 s" % a["name"])
+		_check(paid[0] == AdPlayer.reward_for(a) and paid[0] >= 6, "closing %s pays %d" % [a["name"], paid[0]])
+	# the install button opens "the store": a spinner, then an error with an OK button
+	var shop := AdPlayer.new()
+	shop.setup(AdData.ADS[2])
+	shop.size = Vector2(1280, 720)
+	add_child(shop)
+	var tap := InputEventMouseButton.new()
+	tap.button_index = MOUSE_BUTTON_LEFT
+	tap.pressed = true
+	tap.position = shop._cta_rect().get_center()
+	shop._gui_input(tap)
+	_check(shop._store_t >= 0.0 and shop._store_err.size() == 2, "install opens the store")
+	shop._store_t = AdPlayer.STORE_LOAD + 0.1
+	shop.queue_redraw()
+	await get_tree().process_frame
+	tap.position = shop._close_rect().get_center()
+	shop.t = 25.0
+	shop._gui_input(tap)
+	_check(is_instance_valid(shop) and not shop._done, "the store dialog blocks the close button")
+	tap.position = shop._ok_rect().get_center()
+	shop._gui_input(tap)
+	_check(shop._store_t < 0.0, "OK dismisses the store error")
+	shop.queue_free()
 	# the close button doesn't work before the countdown ends
 	var early := AdPlayer.new()
 	early.setup(AdData.ADS[1])

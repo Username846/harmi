@@ -98,6 +98,17 @@ static func coin(ci: CanvasItem, c: Vector2, rad: float, spin: float) -> void:
 	ci.draw_colored_polygon(pts, Color(1.0, 0.85, 0.25))
 
 
+## An app's icon: a rounded square in its colours with its initial.
+static func app_icon(ci: CanvasItem, r: Rect2, a: Dictionary) -> void:
+	var c: Array = a.get("c", [Color(0.4, 0.6, 1.0), Color(1, 0.5, 0.3), Color(1, 0.9, 0.3)])
+	box(ci, r, c[0], r.size.x * 0.22)
+	box(ci, Rect2(r.position + r.size * 0.12, r.size * 0.76), c[0].lightened(0.15), r.size.x * 0.18)
+	if String(a.get("obj", "")) == "shield":
+		product_shape(ci, "shield", r.get_center(), r.size.x * 0.8, 0.0, c)
+		return
+	text(ci, String(a.get("name", "?")).substr(0, 1), r.get_center(), int(r.size.y * 0.55), c[2], 5)
+
+
 static func box(ci: CanvasItem, rect: Rect2, col: Color, rad: float = 8.0) -> void:
 	CardArt.fill_rrect(ci, rect, rad, col)
 
@@ -946,6 +957,14 @@ static func product_shape(ci: CanvasItem, obj: String, p: Vector2, s: float, t: 
 			for i in 20:
 				ci.draw_rect(Rect2(p + Vector2(-s * 0.46 + i * s * 0.046, s * 0.1), Vector2(s * 0.03, s * 0.04)), c[1])
 			text(ci, "64 GB", p - Vector2(0, s * 0.22), int(s * 0.1), c[2], 4)
+		"shield":
+			var sh := PackedVector2Array([p + Vector2(0, -s * 0.42), p + Vector2(s * 0.34, -s * 0.28), p + Vector2(s * 0.3, s * 0.12), p + Vector2(0, s * 0.42), p + Vector2(-s * 0.3, s * 0.12), p + Vector2(-s * 0.34, -s * 0.28)])
+			ci.draw_colored_polygon(sh, c[0])
+			var inner := PackedVector2Array()
+			for v in sh:
+				inner.append(p + (v - p) * 0.82)
+			ci.draw_colored_polygon(inner, c[0].lightened(0.25))
+			ci.draw_polyline(PackedVector2Array([p + Vector2(-s * 0.14, 0), p + Vector2(-s * 0.03, s * 0.12), p + Vector2(s * 0.17, -s * 0.12)]), c[2], s * 0.06, true)
 		"pawn", "knight":
 			for i in 3:
 				ci.draw_circle(p + Vector2(0, -s * 0.05), s * (0.42 - i * 0.08), Color(c[2], 0.12))

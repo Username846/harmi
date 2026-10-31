@@ -27,8 +27,11 @@ Off the board, your pieces have lives of their own:
 * **Ads and RAM**: watch 10-second full-screen ads for cash between moves. At the start of 30% of your
   turns your device runs out of memory and sends you to the store, which sells RAM Sticks: each halves
   the warnings.
-  Be careful what you tap: one ad in five has an install button that downloads something it shouldn't,
-  and Wormy moves in until you buy an Antivirus.
+  Be careful what you tap: one ad in five has an install button that downloads something it shouldn't.
+  Space invaders move into your device (they stay through new games and reloads), eat your money and
+  zap your pieces until you install the Anti Virus app, from its ad or from the App Store.
+* **App Store**: on the home screen, browse and search every app and game from the ads. Good luck
+  downloading any of them.
 * **Affection and babies**: dates fill a piece's affection meter, and so does watching a friend
   nearby capture an enemy (it gets a crush on the hero). A piece with a full heart may have a **baby
   piece** with its crush on a square beside them.
@@ -199,5 +202,5 @@ Testing shortcuts for the web build (append to the URL):
 `?lab=trench` (also `well`, `barracks`, `tower`, `undercroft`, `chapel`, `scriptorium`, optionally `&room=<id>`),
 `?fight=5` (foe piece type 1–6, optionally `&hero=2`, and `&party=3,1&foes=1,1` for a team battle), `&fmood=10` (the foe's mood, for gloomy labyrinths and duels),
 `?screen=race` (also `date`, `cards` (`&reals=1` for For Reals), `shadow`, `twerk`, `ad` (`&ad=N` picks one of the 104 ads, `&bug=1` makes its install button carry the virus), with `&hero=2&foe=4&hmood=72&fmood=30&own=1`),
-`?fen=<FEN with _ for spaces>` to start from a position (`&oom=1` raises the out-of-memory warning at once, `&virus=1` starts infected; it works on the title screen too), `&money=200&items=sniper,driveby` to start rich,
+`?fen=<FEN with _ for spaces>` to start from a position (`&oom=1` raises the out-of-memory warning at once, `&virus=1` starts infected (it works on the title screen too, and sticks: install Anti Virus to clear it), `&eat=1` with it sends an invader for your money at once), `&money=200&items=sniper,driveby` to start rich,
 and `&grave=2,4` to start with a knight and a rook in your graveyard.

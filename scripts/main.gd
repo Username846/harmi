@@ -38,6 +38,7 @@ func _ready() -> void:
 	dbg = _debug_params()
 	if dbg.has("virus"):
 		Game.infect("a test link") # &virus=1: start infected
+	_update_virus() # an infection saved on the device comes straight back
 	if dbg.has("screen"):
 		_debug_screen()
 		return
@@ -49,6 +50,8 @@ func _ready() -> void:
 		chess.load_position(String(dbg["fen"]).uri_decode().replace("_", " "))
 		if dbg.has("oom"):
 			chess._out_of_memory() # &oom=1: the out-of-memory warning straight away
+		if dbg.has("eat") and Game.infected:
+			chess._virus_mischief() # &eat=1 (with &virus=1): send an invader for your money
 		return
 	if dbg.has("nuke"):
 		_on_nuked({"square": "e8", "piece": "Black King", "side": "White"})
@@ -161,7 +164,7 @@ func _debug_screen() -> void:
 	layer.add_child(encounter)
 
 
-## Wormy's overlay sits above every screen (under the fade) while the game is infected.
+## The virus overlay sits above every screen (under the fade) while the game is infected.
 func _update_virus() -> void:
 	var existing := get_node_or_null("Virus")
 	if Game.infected and existing == null:

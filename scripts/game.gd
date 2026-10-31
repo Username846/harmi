@@ -6,6 +6,9 @@ signal inventory_changed
 signal money_changed
 signal pieces_changed
 signal infection_changed
+## Asks the invader (if it's on screen) to go and do something: kind "eat" or
+## "zap" at a global position, then call `done` when it gets there.
+signal virus_errand(kind: String, target: Vector2, done: Callable)
 
 const PAWN := 1
 const KNIGHT := 2
@@ -53,8 +56,6 @@ const ITEMS := {
 		"desc": "Two random cards for the children's card game in the graveyard. Opened the moment you buy it."},
 	"beyblade": {"name": "Spare Beyblade", "icon": "beyblade", "color": Color(0.3, 0.6, 0.9), "use": [], "scope": "global",
 		"desc": "If your Beyblade volume control snaps off, this replaces it automatically."},
-	"antivirus": {"name": "Antivirus Pro", "icon": "shield", "color": Color(0.25, 0.6, 0.95), "use": [], "scope": "global", "instant": true,
-		"desc": "Scans your device and removes anything that shouldn't be there. Only sold when something is."},
 	"ram": {"name": "RAM Stick", "icon": "ram", "color": Color(0.2, 0.55, 0.3), "use": [], "scope": "global", "instant": true,
 		"desc": "16 GB of genuine, downloadable memory. Installs itself the moment you buy it, and every stick halves the out-of-memory warnings."},
 	"nuke": {"name": "Suitcase Nuke", "icon": "nuke", "color": Color(0.95, 0.8, 0.15), "use": ["turn"], "scope": "global", "unique": true,
@@ -117,7 +118,7 @@ const SHOP := [
 	["nitrous", 12], ["roses", 8], ["headlamp", 15], ["booster", 10],
 	["beyblade", 4], ["potion", 6], ["ether", 5], ["whetstone", 10],
 	["ward", 10], ["gourd", 3], ["spoon", 2], ["pet_rock", 5],
-	["ram", 12], ["antivirus", 15], ["nuke", 30],
+	["ram", 12], ["nuke", 30],
 ]
 ## The chance an out-of-memory warning greets you at the start of a turn, before RAM.
 const OOM_CHANCE := 0.3
@@ -126,7 +127,9 @@ const NUKE_GAP := 10
 
 var active_side := 0
 var material := [39, 39]
-var infected := false # caught from an ad; survives new games until the antivirus cleans it
+var infected := false # caught from an ad; saved to the device, so it outlives new games and reloads
+## Where the device's state (the infection) is kept between sessions. Tests point it elsewhere.
+var device_file := "user://device.cfg"
 var virus_from := ""
 var ram_sticks := 0 # installed in "the device", so shared by both sides
 var _ad_bag: Array = [] # ads still to show before any repeats # each side's material on the board (no kings), kept up to date by the chess screen
@@ -166,6 +169,7 @@ var money: int:
 
 
 func _ready() -> void:
+	load_device()
 	randomize()
 	new_game()
 
@@ -235,12 +239,33 @@ func infect(from: String) -> void:
 		return
 	infected = true
 	virus_from = from
+	save_device()
 	infection_changed.emit()
 
 
+## Only the Anti Virus app gets it off the device.
 func cure() -> void:
+	if not infected:
+		return
 	infected = false
+	save_device()
 	infection_changed.emit()
+
+
+func save_device() -> void:
+	var cfg := ConfigFile.new()
+	cfg.set_value("virus", "infected", infected)
+	cfg.set_value("virus", "from", virus_from)
+	cfg.save(device_file)
+
+
+func load_device() -> void:
+	var cfg := ConfigFile.new()
+	if cfg.load(device_file) != OK:
+		infected = false
+		return
+	infected = bool(cfg.get_value("virus", "infected", false))
+	virus_from = String(cfg.get_value("virus", "from", ""))
 
 
 ## Mangles text the way the virus likes it: l33t letters here and there,

@@ -45,6 +45,7 @@ func _ready() -> void:
 	_set_diff(1)
 	column.add_child(UI.button("Two Players (same device)", func(): start_requested.emit(false, difficulty), 60))
 	column.add_child(UI.button("How to Play", func(): Help.show(self), 52))
+	column.add_child(UI.button("View in App Store", func(): add_child(AppStore.new()), 52))
 	beyblade = BeybladeButton.new(70.0)
 	add_child(beyblade)
 	music_hint = UI.label("Music: tap the Beyblade", 14, UI.DIM, HORIZONTAL_ALIGNMENT_RIGHT)

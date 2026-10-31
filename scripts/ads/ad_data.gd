@@ -329,4 +329,28 @@ const ADS := [
 	{"name": "Mystery Gourd Box", "dev": "Gourdeous Inc", "tag": "There's a gourd in there. Probably.", "cta": "SUBSCRIBE", "obj": "box", "price": "14.99",
 		"c": [Color(0.95, 0.55, 0.15), Color(0.4, 0.25, 0.15), Color(0.6, 0.85, 0.3)],
 		"scenes": [["product", "What's inside?!"], ["cards", "A RARE gourd!"]]},
+	# the cure: the only thing that gets the invader off your device
+	{"name": "Anti Virus", "dev": "Totally Legit Security", "tag": "Is your phone infected? Find out FREE.", "cta": "INSTALL", "obj": "shield",
+		"c": [Color(0.15, 0.45, 0.85), Color(0.95, 0.95, 0.95), Color(0.3, 0.95, 0.5)],
+		"scenes": [["product", "Your phone may be INFECTED"], ["shooter", "Blast the viruses away!"], ["product", "Scan now. It's FREE."]]},
 ]
+
+const ANTIVIRUS := "Anti Virus"
+
+
+## Everything that shows up in the App Store: the games and the apps (the RAM
+## and antivirus software), but not the sneakers or the pizza.
+static func apps() -> Array:
+	var out: Array = []
+	for a in ADS:
+		var obj := String(a.get("obj", ""))
+		if obj == "" or obj == "ram" or obj == "shield":
+			out.append(a)
+	return out
+
+
+static func by_name(n: String) -> Dictionary:
+	for a in ADS:
+		if a["name"] == n:
+			return a
+	return {}

@@ -188,7 +188,8 @@ func _ready() -> void:
 		await cut.finished
 	await get_tree().process_frame
 	_check(cs._twerks.is_empty() and cs.state != "cutscene", "turn resumes after the twerk")
-	# Wormy's mischief never breaks anything
+	# the invader's mischief never breaks anything
+	Game.device_file = "user://test_device.cfg"
 	Game.infect("a test")
 	r.setup_start()
 	for i in 30:

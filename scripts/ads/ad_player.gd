@@ -36,7 +36,8 @@ var reward := 5
 var t := 0.0
 var _store_t := -1.0 # time since the install button was tapped, -1 when no store dialog
 var _store_err: Array = [] # picked when the ad starts, so every tap gets the same one
-var virus := false # this ad's install button downloads Wormy
+var virus := false # this ad's install button downloads the invader
+var antivirus := false # the Anti Virus ad: its install button actually works
 var _player: AudioStreamPlayer
 var _done := false
 
@@ -53,7 +54,8 @@ func setup(a: Dictionary) -> void:
 
 func _ready() -> void:
 	_store_err = STORE_ERRORS[randi() % STORE_ERRORS.size()]
-	virus = randf() < VIRUS_CHANCE and not Game.infected
+	antivirus = String(ad.get("name", "")) == AdData.ANTIVIRUS
+	virus = not antivirus and randf() < VIRUS_CHANCE and not Game.infected
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	z_index = 60
@@ -100,6 +102,8 @@ func _gui_input(event: InputEvent) -> void:
 			_store_t = -1.0
 			if virus:
 				Game.infect(String(ad.get("name", "")))
+			elif antivirus:
+				Game.cure()
 		return
 	if t >= dur and _close_rect().grow(12.0).has_point(p):
 		_finish()
@@ -107,8 +111,15 @@ func _gui_input(event: InputEvent) -> void:
 		_store_t = 0.0
 
 
+## What Anti Virus says once it's installed and has had a look around.
+static func scan_result() -> Array:
+	if Game.infected:
+		return ["Scan complete", "1 threat found and removed:\nTrojan.SpaceInvader.Gen\n(installed by %s)" % Game.virus_from]
+	return ["Scan complete", "No threats found. Your device is protected."]
+
+
 func _store_ready() -> float:
-	return DOWNLOAD_END if virus else STORE_LOAD
+	return DOWNLOAD_END if virus or antivirus else STORE_LOAD
 
 
 func _package() -> String:
@@ -186,7 +197,7 @@ func _store_dialog(u: float) -> void:
 		return
 	var d := _dialog_rect()
 	var pad := u * 0.05
-	if virus and _store_t < DOWNLOAD_END:
+	if (virus or antivirus) and _store_t < DOWNLOAD_END:
 		# "Downloading..." with a progress bar that crawls, stalls, then leaps
 		AdScenes.box(self, d, Color(0.98, 0.98, 0.99), 16)
 		var k := clampf((_store_t - STORE_LOAD) / (DOWNLOAD_END - STORE_LOAD), 0.0, 1.0)
@@ -200,6 +211,8 @@ func _store_dialog(u: float) -> void:
 	var err: Array = _store_err
 	if virus:
 		err = ["Installation error", "Package %s could not be verified.\nInstalling anyway..." % _package()]
+	elif antivirus:
+		err = scan_result()
 	AdScenes.box(self, d, Color(0.98, 0.98, 0.99), 16)
 	draw_string(font, d.position + Vector2(pad, pad + u * 0.03), String(err[0]), HORIZONTAL_ALIGNMENT_LEFT, d.size.x - pad * 2.0, int(u * 0.045), Color(0.1, 0.1, 0.12))
 	draw_multiline_string(font, d.position + Vector2(pad, pad + u * 0.1), String(err[1]), HORIZONTAL_ALIGNMENT_LEFT, d.size.x - pad * 2.0, int(u * 0.032), -1, Color(0.35, 0.35, 0.4))
@@ -207,11 +220,8 @@ func _store_dialog(u: float) -> void:
 	draw_string(font, ok.position + Vector2(0, ok.size.y * 0.65), "OK", HORIZONTAL_ALIGNMENT_CENTER, ok.size.x, int(u * 0.04), Color(0.15, 0.5, 0.95))
 
 
-func _icon(r: Rect2, c: Array) -> void:
-	AdScenes.box(self, r, c[0], r.size.x * 0.22)
-	AdScenes.box(self, Rect2(r.position + r.size * 0.12, r.size * 0.76), c[0].lightened(0.15), r.size.x * 0.18)
-	var name := String(ad.get("name", "?"))
-	AdScenes.text(self, name.substr(0, 1), r.get_center(), int(r.size.y * 0.55), c[2], 5)
+func _icon(r: Rect2, _c: Array) -> void:
+	AdScenes.app_icon(self, r, ad)
 
 
 func _rating() -> float:

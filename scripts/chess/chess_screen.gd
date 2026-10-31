@@ -291,7 +291,7 @@ func _start_turn() -> void:
 		if Game.infected:
 			if randf() < 0.3:
 				status_label.text = Game.corrupt(status_label.text, 0.5)
-			if turn_no > 0 and randf() < 0.25:
+			if turn_no > 0 and randf() < 0.5:
 				_virus_mischief()
 	else:
 		state = "busy"
@@ -1738,31 +1738,43 @@ func _out_of_memory() -> void:
 	add_child(m)
 
 
-## Wormy helps himself to something. Annoying, never game-breaking.
+## The invader helps itself: it flies over and eats some of your money, or zaps
+## one of your pieces. Annoying, never game-breaking.
 func _virus_mischief() -> void:
 	var mine: Array = []
-	for s in 64:
-		var code := rules.board[s]
+	for sq in 64:
+		var code := rules.board[sq]
 		if code != 0 and ChessRules.color_of(code) == rules.side and (code & 7) != ChessRules.KING:
-			mine.append(s)
-	match randi() % 3:
-		0:
-			var take := mini(Game.money, randi_range(1, 4))
-			if take > 0:
-				Game.spend(take)
-				_log("[color=#7dff6a]Wormy mined $%d of crypto from your wallet.[/color]" % take)
-				return
-			_log("[color=#7dff6a]Wormy checked your wallet. He feels sorry for you.[/color]")
-		1:
-			if not mine.is_empty():
-				var s: int = mine[randi() % mine.size()]
-				Game.change_mood(rules.ids[s], -randf_range(5.0, 15.0))
-				_log("[color=#7dff6a]Wormy whispered something to your %s. It looks upset.[/color]" % _title(s))
+			mine.append(sq)
+	var side := Game.active_side
+	if Game.money > 0 and (mine.is_empty() or randf() < 0.6):
+		var take := mini(Game.money, randi_range(2, 6))
+		_errand("eat", wallet_label.get_global_rect().get_center(), func() -> int:
+			var had := Game.active_side
+			Game.active_side = side
+			var bite := mini(Game.money, take)
+			if bite > 0:
+				Game.spend(bite)
+				_log("[color=#7dff6a]A space invader ate $%d out of your wallet.[/color]" % bite)
+			Game.active_side = had
+			return bite)
+	elif not mine.is_empty():
+		var sq: int = mine[randi() % mine.size()]
+		var pid := rules.ids[sq]
+		_errand("zap", board.get_global_transform() * board.square_center(sq), func() -> int:
+			Game.change_mood(pid, -randf_range(6.0, 16.0))
+			if is_inside_tree():
+				_log("[color=#7dff6a]A space invader zapped one of your pieces. It looks shaken.[/color]")
 				board.queue_redraw()
-				return
-			_log("[color=#7dff6a]Wormy is bored.[/color]")
-		_:
-			_log("[color=#7dff6a]Wormy: %s[/color]" % String(VirusOverlay.LINES[randi() % VirusOverlay.LINES.size()]))
+			return 0)
+
+
+## Sends the invader on screen to `target`; with nobody to send, it just happens.
+func _errand(kind: String, target: Vector2, done: Callable) -> void:
+	if Game.virus_errand.get_connections().is_empty():
+		done.call()
+	else:
+		Game.virus_errand.emit(kind, target, done)
 
 
 func _watch_ad() -> void:

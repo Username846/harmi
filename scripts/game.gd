@@ -5,6 +5,7 @@ extends Node
 signal inventory_changed
 signal money_changed
 signal pieces_changed
+signal infection_changed
 
 const PAWN := 1
 const KNIGHT := 2
@@ -52,6 +53,8 @@ const ITEMS := {
 		"desc": "Two random cards for the children's card game in the graveyard. Opened the moment you buy it."},
 	"beyblade": {"name": "Spare Beyblade", "icon": "beyblade", "color": Color(0.3, 0.6, 0.9), "use": [], "scope": "global",
 		"desc": "If your Beyblade volume control snaps off, this replaces it automatically."},
+	"antivirus": {"name": "Antivirus Pro", "icon": "shield", "color": Color(0.25, 0.6, 0.95), "use": [], "scope": "global", "instant": true,
+		"desc": "Scans your device and removes anything that shouldn't be there. Only sold when something is."},
 	"ram": {"name": "RAM Stick", "icon": "ram", "color": Color(0.2, 0.55, 0.3), "use": [], "scope": "global", "instant": true,
 		"desc": "16 GB of genuine, downloadable memory. Installs itself the moment you buy it, and every stick halves the out-of-memory warnings."},
 	"nuke": {"name": "Suitcase Nuke", "icon": "nuke", "color": Color(0.95, 0.8, 0.15), "use": ["turn"], "scope": "global", "unique": true,
@@ -114,7 +117,7 @@ const SHOP := [
 	["nitrous", 12], ["roses", 8], ["headlamp", 15], ["booster", 10],
 	["beyblade", 4], ["potion", 6], ["ether", 5], ["whetstone", 10],
 	["ward", 10], ["gourd", 3], ["spoon", 2], ["pet_rock", 5],
-	["ram", 12], ["nuke", 30],
+	["ram", 12], ["antivirus", 15], ["nuke", 30],
 ]
 ## The chance an out-of-memory warning greets you at the start of a turn, before RAM.
 const OOM_CHANCE := 0.3
@@ -123,6 +126,8 @@ const NUKE_GAP := 10
 
 var active_side := 0
 var material := [39, 39]
+var infected := false # caught from an ad; survives new games until the antivirus cleans it
+var virus_from := ""
 var ram_sticks := 0 # installed in "the device", so shared by both sides
 var _ad_bag: Array = [] # ads still to show before any repeats # each side's material on the board (no kings), kept up to date by the chess screen
 var _invs: Array = [{}, {}]
@@ -223,6 +228,37 @@ func remove_item(id: String, n: int = 1) -> bool:
 func material_deficit(side: int = -1) -> int:
 	var me := active_side if side < 0 else side
 	return maxi(0, int(material[1 - me]) - int(material[me]))
+
+
+func infect(from: String) -> void:
+	if infected:
+		return
+	infected = true
+	virus_from = from
+	infection_changed.emit()
+
+
+func cure() -> void:
+	infected = false
+	infection_changed.emit()
+
+
+## Mangles text the way the virus likes it: l33t letters here and there,
+## leaving BBCode [tags] alone.
+static func corrupt(s: String, amount: float = 0.35) -> String:
+	const SWAP := {"a": "4", "e": "3", "i": "1", "o": "0", "s": "5", "t": "7", "A": "4", "E": "3", "I": "1", "O": "0", "S": "5", "T": "7"}
+	var out := ""
+	var in_tag := false
+	for ch in s:
+		if ch == "[":
+			in_tag = true
+		elif ch == "]":
+			in_tag = false
+		if not in_tag and SWAP.has(ch) and randf() < amount:
+			out += String(SWAP[ch])
+		else:
+			out += ch
+	return out
 
 
 func oom_chance() -> float:

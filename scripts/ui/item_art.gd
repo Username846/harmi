@@ -166,6 +166,9 @@ static func draw_icon(ci: CanvasItem, id: String, r: Rect2, t: float = 0.0) -> v
 			_shape(ci, r, [Vector2(0.4, 0.4), Vector2(0.62, 0.34), Vector2(0.63, 0.4), Vector2(0.41, 0.46)], Color(0.15, 0.15, 0.17), line, w)
 			ci.draw_line(_p(r, 0.46, 0.55), _p(r, 0.44, 0.66), line, w * 1.5, true)
 			ci.draw_circle(_p(r, 0.62, 0.37), r.size.x * 0.035, Color(0.6, 0.85, 1.0))
+		"shield":
+			_shape(ci, r, [Vector2(0.5, 0.1), Vector2(0.86, 0.22), Vector2(0.8, 0.6), Vector2(0.5, 0.9), Vector2(0.2, 0.6), Vector2(0.14, 0.22)], col, line, w)
+			ci.draw_polyline(PackedVector2Array([_p(r, 0.34, 0.5), _p(r, 0.46, 0.63), _p(r, 0.68, 0.36)]), Color(1, 1, 1), w * 2.2, true)
 		"ram":
 			_shape(ci, r, [Vector2(0.06, 0.34), Vector2(0.94, 0.34), Vector2(0.94, 0.66), Vector2(0.06, 0.66)], col, line, w)
 			for i in 4:

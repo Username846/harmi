@@ -20,6 +20,7 @@ const QUIPS := {
 	"pet_rock": "His name is Gerald. Be good to him.",
 	"nuke": "Don't tell me what it's for. I don't want to know.",
 	"ram": "Installed. I blew on the contacts for you.",
+	"antivirus": "Scanning... got it. Little guy put up a fight.",
 }
 const GENERIC := ["Pleasure doing business.", "No refunds!", "Tell your friends. Or don't.", "Enjoy. Responsibly."]
 
@@ -92,6 +93,8 @@ func _price(id: String) -> int:
 
 ## The nuke stays behind the counter until you're losing badly.
 func _locked(id: String) -> bool:
+	if id == "antivirus":
+		return not Game.infected
 	return id == "nuke" and not Game.losing_badly()
 
 
@@ -120,7 +123,7 @@ func _update_buy() -> void:
 		buy_btn.text = "Already owned"
 	elif _locked(selected):
 		buy_btn.disabled = true
-		buy_btn.text = "You're not desperate enough"
+		buy_btn.text = "No threats detected" if selected == "antivirus" else "You're not desperate enough"
 	elif Game.money < price:
 		buy_btn.disabled = true
 		buy_btn.text = "Need $%d" % price
@@ -134,7 +137,9 @@ func _select(id: String) -> void:
 	var owned := Game.count(id)
 	var extra := "  (you have %d)" % owned if owned > 0 else ""
 	desc.text = "%s - $%d%s\n%s" % [Game.item_name(id), _price(id), extra, Game.item_desc(id)]
-	if _locked(id):
+	if _locked(id) and id == "antivirus":
+		desc.text += "\n\"Your device is clean. For now.\""
+	elif _locked(id):
 		var down := Game.material_deficit()
 		desc.text += "\n\"That one's behind the counter. Come back when you're down %d points. You're down %d.\"" % [Game.NUKE_GAP, down] if down > 0 else "\n\"That one's behind the counter. You're doing fine. Come back when it's hopeless.\""
 	desc.add_theme_color_override("font_color", UI.TEXT)
@@ -150,7 +155,11 @@ func _on_buy() -> void:
 	if not Game.spend(_price(id)):
 		return
 	var note := ""
-	if id == "ram":
+	if id == "antivirus":
+		Game.cure()
+		note = "Threat removed. Your device is clean."
+		keeper.text = "\"%s\"" % QUIPS["antivirus"]
+	elif id == "ram":
 		Game.ram_sticks += 1
 		note = "Installed. Out-of-memory warnings now %d%%." % roundi(Game.oom_chance() * 100.0)
 		keeper.text = "\"%s\"" % QUIPS["ram"]

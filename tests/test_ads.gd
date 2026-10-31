@@ -80,6 +80,71 @@ func _ready() -> void:
 	shop._gui_input(tap)
 	_check(shop._store_t < 0.0, "OK dismisses the store error")
 	shop.queue_free()
+	# the same ad shows the same store error every time you tap install
+	var same := AdPlayer.new()
+	same.setup(AdData.ADS[5])
+	same.size = Vector2(1280, 720)
+	add_child(same)
+	same.virus = false
+	var first: Array = same._store_err
+	for i in 3:
+		tap.position = same._cta_rect().get_center()
+		same._gui_input(tap)
+		_check(same._store_err == first, "the same error each tap")
+		same._store_t = AdPlayer.STORE_LOAD + 0.1
+		tap.position = same._ok_rect().get_center()
+		same._gui_input(tap)
+	same.queue_free()
+	# the 5%: a download, an "installation error", and Wormy moves in
+	Game.cure()
+	var bad := AdPlayer.new()
+	bad.setup(AdData.ADS[7])
+	bad.size = Vector2(1280, 720)
+	add_child(bad)
+	bad.virus = true
+	tap.position = bad._cta_rect().get_center()
+	bad._gui_input(tap)
+	bad._store_t = 2.5
+	bad.queue_redraw()
+	await get_tree().process_frame
+	tap.position = bad._ok_rect().get_center()
+	bad._gui_input(tap)
+	_check(not Game.infected and bad._store_t >= 0.0, "OK does nothing while it's still downloading")
+	bad._store_t = AdPlayer.DOWNLOAD_END + 0.1
+	bad.queue_redraw()
+	await get_tree().process_frame
+	bad._gui_input(tap)
+	_check(Game.infected and Game.virus_from == String(AdData.ADS[7]["name"]), "the download infects the game")
+	bad.queue_free()
+	# the overlay runs: glitches, Wormy, a scam popup that closes
+	var ov := VirusOverlay.new()
+	ov.size = Vector2(1280, 720)
+	add_child(ov)
+	ov._glitch_at = 0.0
+	ov._next_popup = 0.0
+	for i in 20:
+		await get_tree().process_frame
+	_check(ov._popup != null and is_instance_valid(ov._popup), "a scam popup appears")
+	var x := InputEventMouseButton.new()
+	x.button_index = MOUSE_BUTTON_LEFT
+	x.pressed = true
+	x.position = Vector2(ov._popup.size.x - 15, 14)
+	ov._popup.gui_input.emit(x)
+	await get_tree().process_frame
+	_check(not is_instance_valid(ov._popup), "the popup's X closes it")
+	ov.queue_free()
+	# corruption leaves BBCode intact
+	var corrupted := Game.corrupt("[color=#aabbcc]Tests are so satisfying[/color]", 1.0)
+	_check(corrupted.begins_with("[color=#aabbcc]") and corrupted.ends_with("[/color]") and corrupted.contains("5"), "corrupt keeps tags: " + corrupted)
+	# the antivirus is only for sale while infected, and cures it
+	var shop2 := ShopPanel.new()
+	add_child(shop2)
+	_check(not shop2._locked("antivirus"), "antivirus for sale while infected")
+	Game.add_money(50)
+	shop2._select("antivirus")
+	shop2._on_buy()
+	_check(not Game.infected and shop2._locked("antivirus"), "antivirus cures the game")
+	shop2.queue_free()
 	# the close button doesn't work before the countdown ends
 	var early := AdPlayer.new()
 	early.setup(AdData.ADS[1])

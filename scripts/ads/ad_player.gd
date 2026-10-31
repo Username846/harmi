@@ -13,6 +13,9 @@ const LENGTH := 10.0 # every ad, before you get paid
 const END_CARD := 2.5
 const CUT := 3.5 # seconds of footage before the ad cuts to its next clip
 const STORE_LOAD := 1.4
+const DOWNLOAD_END := 4.6 # with the virus, "Downloading..." runs until here
+## How often an ad's install button quietly downloads something nasty instead.
+const VIRUS_CHANCE := 0.05
 ## What the store says when you try to look at the game. It never works.
 const STORE_ERRORS := [
 	["Something went wrong", "Couldn't connect to the store. Check your connection and try again.\n(Error code: 0x80072EFD)"],
@@ -32,7 +35,8 @@ var dur := 8.0
 var reward := 5
 var t := 0.0
 var _store_t := -1.0 # time since the install button was tapped, -1 when no store dialog
-var _store_err: Array = []
+var _store_err: Array = [] # picked when the ad starts, so every tap gets the same one
+var virus := false # this ad's install button downloads Wormy
 var _player: AudioStreamPlayer
 var _done := false
 
@@ -48,6 +52,8 @@ func setup(a: Dictionary) -> void:
 
 
 func _ready() -> void:
+	_store_err = STORE_ERRORS[randi() % STORE_ERRORS.size()]
+	virus = randf() < VIRUS_CHANCE and not Game.infected
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	z_index = 60
@@ -90,14 +96,25 @@ func _gui_input(event: InputEvent) -> void:
 	accept_event()
 	var p: Vector2 = event.position
 	if _store_t >= 0.0:
-		if _store_t >= STORE_LOAD and _ok_rect().grow(8.0).has_point(p):
+		if _store_t >= _store_ready() and _ok_rect().grow(8.0).has_point(p):
 			_store_t = -1.0
+			if virus:
+				Game.infect(String(ad.get("name", "")))
 		return
 	if t >= dur and _close_rect().grow(12.0).has_point(p):
 		_finish()
 	elif _cta_rect().has_point(p):
 		_store_t = 0.0
-		_store_err = STORE_ERRORS[randi() % STORE_ERRORS.size()]
+
+
+func _store_ready() -> float:
+	return DOWNLOAD_END if virus else STORE_LOAD
+
+
+func _package() -> String:
+	var n := String(ad.get("name", "app")).to_lower().replace(" ", "").replace(".", "").replace("'", "").replace(":", "").replace("&", "")
+	var d := String(ad.get("dev", "dev")).to_lower().replace(" ", "").replace(".", "").replace("'", "").replace("&", "")
+	return "com.%s.%s" % [d, n]
 
 
 func _dialog_rect() -> Rect2:
@@ -168,10 +185,24 @@ func _store_dialog(u: float) -> void:
 		draw_string(font, c + Vector2(-u * 0.05, u * 0.012), "Loading...", HORIZONTAL_ALIGNMENT_LEFT, -1, int(u * 0.035), Color(0.2, 0.2, 0.25))
 		return
 	var d := _dialog_rect()
-	AdScenes.box(self, d, Color(0.98, 0.98, 0.99), 16)
 	var pad := u * 0.05
-	draw_string(font, d.position + Vector2(pad, pad + u * 0.03), String(_store_err[0]), HORIZONTAL_ALIGNMENT_LEFT, d.size.x - pad * 2.0, int(u * 0.045), Color(0.1, 0.1, 0.12))
-	draw_multiline_string(font, d.position + Vector2(pad, pad + u * 0.1), String(_store_err[1]), HORIZONTAL_ALIGNMENT_LEFT, d.size.x - pad * 2.0, int(u * 0.032), -1, Color(0.35, 0.35, 0.4))
+	if virus and _store_t < DOWNLOAD_END:
+		# "Downloading..." with a progress bar that crawls, stalls, then leaps
+		AdScenes.box(self, d, Color(0.98, 0.98, 0.99), 16)
+		var k := clampf((_store_t - STORE_LOAD) / (DOWNLOAD_END - STORE_LOAD), 0.0, 1.0)
+		var shown := minf(k * 1.6, 0.62) if k < 0.75 else lerpf(0.62, 1.0, (k - 0.75) / 0.25)
+		draw_string(font, d.position + Vector2(pad, pad + u * 0.03), "Downloading " + String(ad.get("name", "")), HORIZONTAL_ALIGNMENT_LEFT, d.size.x - pad * 2.0, int(u * 0.042), Color(0.1, 0.1, 0.12))
+		var bar := Rect2(d.position + Vector2(pad, d.size.y * 0.5), Vector2(d.size.x - pad * 2.0, u * 0.025))
+		AdScenes.box(self, bar, Color(0.85, 0.87, 0.9), 6)
+		AdScenes.box(self, Rect2(bar.position, Vector2(bar.size.x * shown, bar.size.y)), Color(0.15, 0.5, 0.95), 6)
+		draw_string(font, bar.position + Vector2(0, u * 0.08), "%d%%  •  %s" % [int(shown * 100.0), _package()], HORIZONTAL_ALIGNMENT_LEFT, bar.size.x, int(u * 0.028), Color(0.4, 0.4, 0.45))
+		return
+	var err: Array = _store_err
+	if virus:
+		err = ["Installation error", "Package %s could not be verified.\nInstalling anyway..." % _package()]
+	AdScenes.box(self, d, Color(0.98, 0.98, 0.99), 16)
+	draw_string(font, d.position + Vector2(pad, pad + u * 0.03), String(err[0]), HORIZONTAL_ALIGNMENT_LEFT, d.size.x - pad * 2.0, int(u * 0.045), Color(0.1, 0.1, 0.12))
+	draw_multiline_string(font, d.position + Vector2(pad, pad + u * 0.1), String(err[1]), HORIZONTAL_ALIGNMENT_LEFT, d.size.x - pad * 2.0, int(u * 0.032), -1, Color(0.35, 0.35, 0.4))
 	var ok := _ok_rect()
 	draw_string(font, ok.position + Vector2(0, ok.size.y * 0.65), "OK", HORIZONTAL_ALIGNMENT_CENTER, ok.size.x, int(u * 0.04), Color(0.15, 0.5, 0.95))
 

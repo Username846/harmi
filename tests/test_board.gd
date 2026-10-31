@@ -188,6 +188,14 @@ func _ready() -> void:
 		await cut.finished
 	await get_tree().process_frame
 	_check(cs._twerks.is_empty() and cs.state != "cutscene", "turn resumes after the twerk")
+	# Wormy's mischief never breaks anything
+	Game.infect("a test")
+	r.setup_start()
+	for i in 30:
+		cs._virus_mischief()
+		cs._log("[color=#ffffff]A log line about the Black Bishop[/color]")
+	_check(Game.money >= 0 and r.board[ChessRules.square_from_name("e1")] != 0, "the virus only annoys")
+	Game.cure()
 	# the Suitcase Nuke is only sold when you're losing badly, and ends the chess game
 	var boom := {}
 	cs.nuked.connect(func(info: Dictionary): boom.merge(info))

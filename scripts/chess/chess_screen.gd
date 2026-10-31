@@ -219,6 +219,8 @@ func _human_side() -> int:
 
 
 func _log(text: String) -> void:
+	if Game.infected and randf() < 0.35:
+		text = Game.corrupt(text)
 	log_box.append_text(text + "\n")
 
 
@@ -286,6 +288,11 @@ func _start_turn() -> void:
 		sub_label.text = "Tap a piece to open its action menu."
 		if ram_popups and turn_no > 0 and randf() < Game.oom_chance():
 			_out_of_memory()
+		if Game.infected:
+			if randf() < 0.3:
+				status_label.text = Game.corrupt(status_label.text, 0.5)
+			if turn_no > 0 and randf() < 0.25:
+				_virus_mischief()
 	else:
 		state = "busy"
 		board.interactive = false
@@ -1729,6 +1736,33 @@ func _out_of_memory() -> void:
 		m.close()
 		_show_shop("ram")], ["Ignore", m.close]])
 	add_child(m)
+
+
+## Wormy helps himself to something. Annoying, never game-breaking.
+func _virus_mischief() -> void:
+	var mine: Array = []
+	for s in 64:
+		var code := rules.board[s]
+		if code != 0 and ChessRules.color_of(code) == rules.side and (code & 7) != ChessRules.KING:
+			mine.append(s)
+	match randi() % 3:
+		0:
+			var take := mini(Game.money, randi_range(1, 4))
+			if take > 0:
+				Game.spend(take)
+				_log("[color=#7dff6a]Wormy mined $%d of crypto from your wallet.[/color]" % take)
+				return
+			_log("[color=#7dff6a]Wormy checked your wallet. He feels sorry for you.[/color]")
+		1:
+			if not mine.is_empty():
+				var s: int = mine[randi() % mine.size()]
+				Game.change_mood(rules.ids[s], -randf_range(5.0, 15.0))
+				_log("[color=#7dff6a]Wormy whispered something to your %s. It looks upset.[/color]" % _title(s))
+				board.queue_redraw()
+				return
+			_log("[color=#7dff6a]Wormy is bored.[/color]")
+		_:
+			_log("[color=#7dff6a]Wormy: %s[/color]" % String(VirusOverlay.LINES[randi() % VirusOverlay.LINES.size()]))
 
 
 func _watch_ad() -> void:

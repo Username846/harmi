@@ -34,7 +34,10 @@ func _ready() -> void:
 	fade.modulate.a = 0.0
 	add_child(fade)
 	resized.connect(func(): bg.queue_redraw())
+	Game.infection_changed.connect(_update_virus)
 	dbg = _debug_params()
+	if dbg.has("virus"):
+		Game.infect("a test link") # &virus=1: start infected
 	if dbg.has("screen"):
 		_debug_screen()
 		return
@@ -137,6 +140,8 @@ func _debug_screen() -> void:
 		ad.setup(AdData.ADS[clampi(int(dbg.get("ad", "0")), 0, AdData.ADS.size() - 1)])
 		ad.finished.connect(func(_r: int): show_title())
 		layer.add_child(ad)
+		if dbg.has("bug"):
+			ad.virus = true # &bug=1: this ad's install button carries the virus
 		return
 	if dbg["screen"] == "twerk":
 		# ?screen=twerk&foe=3&own=1: the queen's victory twerk on a bishop's grave
@@ -154,6 +159,18 @@ func _debug_screen() -> void:
 		encounter = null
 		show_title())
 	layer.add_child(encounter)
+
+
+## Wormy's overlay sits above every screen (under the fade) while the game is infected.
+func _update_virus() -> void:
+	var existing := get_node_or_null("Virus")
+	if Game.infected and existing == null:
+		var v := VirusOverlay.new()
+		v.name = "Virus"
+		add_child(v)
+		move_child(v, fade.get_index())
+	elif not Game.infected and existing != null:
+		existing.queue_free()
 
 
 func _draw_bg() -> void:

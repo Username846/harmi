@@ -1,7 +1,7 @@
 class_name AppStore
 extends Control
-## The phone's app store, opened from the home screen: every app and game
-## from the ads, searchable, each with a GET button. Downloads never seem to go
+## The phone's app store, opened from the home screen: every app from every
+## ad, shelved by category (with counts), searchable, each with a GET button. Downloads never seem to go
 ## through (each app keeps failing with the same error), except Anti Virus,
 ## which installs, scans and cleans out the invaders.
 
@@ -14,6 +14,8 @@ const DOWNLOAD := 4.2
 
 var _list: VBoxContainer
 var _search: LineEdit
+var _tabs: HFlowContainer
+var _cat := "All"
 var _errors := {} # app name -> the error it keeps giving
 var _dlg: Control
 var _dlg_info := {}
@@ -63,6 +65,11 @@ func _ready() -> void:
 	_search.add_theme_color_override("font_placeholder_color", GREY)
 	_search.text_changed.connect(func(_t: String): _fill())
 	col.add_child(_search)
+	_tabs = HFlowContainer.new()
+	_tabs.add_theme_constant_override("h_separation", 6)
+	_tabs.add_theme_constant_override("v_separation", 6)
+	col.add_child(_tabs)
+	_make_tabs()
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -100,16 +107,54 @@ static func megabytes(a: Dictionary) -> int:
 	return 40 + absi(String(a.get("name", "")).hash()) % 420
 
 
+## One tab per shelf, each saying how many apps are on it.
+func _make_tabs() -> void:
+	for c in _tabs.get_children():
+		c.queue_free()
+	var counts := AdData.category_counts()
+	var specs: Array = [["All", AdData.apps().size()]]
+	for c in AdData.CATEGORIES:
+		specs.append([c, counts[c]])
+	for spec in specs:
+		var on: bool = spec[0] == _cat
+		var b := _flat_button("%s · %d" % [spec[0], spec[1]], BLUE if on else Color(0.89, 0.9, 0.93), Color(1, 1, 1) if on else INK)
+		b.custom_minimum_size = Vector2(0, 34)
+		b.add_theme_font_size_override("font_size", 14)
+		b.pressed.connect(func():
+			_cat = String(spec[0])
+			_make_tabs()
+			_fill())
+		_tabs.add_child(b)
+
+
+func _matches(a: Dictionary, q: String) -> bool:
+	return q == "" or String(a["name"]).to_lower().contains(q) or String(a["dev"]).to_lower().contains(q)
+
+
+func _header(text: String) -> void:
+	var h := Label.new()
+	h.text = text
+	h.add_theme_font_size_override("font_size", 20)
+	h.add_theme_color_override("font_color", INK)
+	_list.add_child(h)
+
+
 func _fill() -> void:
 	for c in _list.get_children():
 		c.queue_free()
 	var q := _search.text.strip_edges().to_lower()
+	var counts := AdData.category_counts()
 	var shown := 0
-	for a in AdData.apps():
-		if q != "" and not (String(a["name"]).to_lower().contains(q) or String(a["dev"]).to_lower().contains(q)):
+	for cat in AdData.CATEGORIES:
+		if _cat != "All" and cat != _cat:
 			continue
-		_list.add_child(_row(a))
-		shown += 1
+		var apps: Array = AdData.apps().filter(func(a): return AdData.category(a) == cat and _matches(a, q))
+		if apps.is_empty():
+			continue
+		_header("%s  —  %d apps" % [cat, counts[cat]])
+		for a in apps:
+			_list.add_child(_row(a))
+			shown += 1
 	if shown == 0:
 		var none := Label.new()
 		none.text = "No results for \"%s\"" % _search.text

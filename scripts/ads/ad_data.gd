@@ -338,14 +338,43 @@ const ADS := [
 const ANTIVIRUS := "Anti Virus"
 
 
-## Everything that shows up in the App Store: the games and the apps (the RAM
-## and antivirus software), but not the sneakers or the pizza.
+## The App Store's shelves, in the order it shows them.
+const CATEGORIES := ["Arcade", "Action", "Puzzle", "Casual", "Strategy", "Casino", "Simulation", "Social",
+	"Food & Drink", "Shopping", "Utilities"]
+const GAME_CATEGORY := {
+	"runner": "Arcade", "racing": "Arcade", "jumper": "Arcade", "basket": "Arcade", "stack": "Arcade", "hole": "Arcade", "slice": "Action",
+	"shooter": "Action", "castle": "Strategy", "cards": "Strategy",
+	"pull_pin": "Puzzle", "word": "Puzzle", "draw_save": "Puzzle", "ball_sort": "Puzzle", "rope": "Puzzle",
+	"match3": "Casual", "merge": "Casual", "slots": "Casino",
+	"idle": "Simulation", "fishing": "Simulation", "food": "Simulation", "chat": "Social",
+}
+
+
+## Which shelf an ad's app sits on: products by what they are, games by their first clip.
+static func category(a: Dictionary) -> String:
+	match String(a.get("obj", "")):
+		"":
+			return String(GAME_CATEGORY.get(String(a["scenes"][0][0]), "Casual"))
+		"can", "pizza":
+			return "Food & Drink"
+		"ram", "shield":
+			return "Utilities"
+		_:
+			return "Shopping"
+
+
+## Everything in the App Store: every app from every ad.
 static func apps() -> Array:
-	var out: Array = []
+	return ADS
+
+
+## How many apps sit on each shelf.
+static func category_counts() -> Dictionary:
+	var out := {}
+	for c in CATEGORIES:
+		out[c] = 0
 	for a in ADS:
-		var obj := String(a.get("obj", ""))
-		if obj == "" or obj == "ram" or obj == "shield":
-			out.append(a)
+		out[category(a)] = int(out[category(a)]) + 1
 	return out
 
 

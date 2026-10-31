@@ -178,7 +178,15 @@ func _ready() -> void:
 	store.size = Vector2(1280, 720)
 	add_child(store)
 	await get_tree().process_frame
-	_check(store._list.get_child_count() == AdData.apps().size(), "the store lists every app")
+	_check(AdData.apps().size() == AdData.ADS.size(), "every ad is in the store")
+	var total := 0
+	var counts := AdData.category_counts()
+	for c in counts:
+		total += int(counts[c])
+		_check(int(counts[c]) > 0, "the %s shelf isn't empty" % c)
+	_check(total == AdData.ADS.size() and counts.size() == AdData.CATEGORIES.size(), "every app is on exactly one shelf")
+	_check(store._list.get_child_count() == AdData.ADS.size() + AdData.CATEGORIES.size(), "the store shows every app under its shelf heading")
+	_check(store._tabs.get_child_count() == AdData.CATEGORIES.size() + 1, "a tab per shelf plus All")
 	var game_app: Dictionary = AdData.ADS[0]
 	store._get_app(game_app)
 	store._process(AppStore.LOAD + 0.1)
@@ -197,7 +205,12 @@ func _ready() -> void:
 	store._search.text = "glorp"
 	store._fill()
 	await get_tree().process_frame
-	_check(store._list.get_child_count() == 1, "search: products aren't apps, so no Glorp")
+	_check(store._list.get_child_count() == 4, "search finds the three Glorp drinks under Food & Drink")
+	store._search.text = ""
+	store._cat = "Utilities"
+	store._fill()
+	await get_tree().process_frame
+	_check(store._list.get_child_count() == 1 + int(counts["Utilities"]), "a shelf on its own")
 	store.queue_free()
 	# the close button doesn't work before the countdown ends
 	var early := AdPlayer.new()

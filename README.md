@@ -30,7 +30,8 @@ Off the board, your pieces have lives of their own:
   Be careful what you tap: one ad in five has an install button that downloads something it shouldn't.
   Space invaders move into your device (they stay through new games and reloads), eat your money and
   zap your pieces until you install the Anti Virus app, from its ad or from the App Store.
-* **App Store**: on the home screen, browse and search every app and game from the ads. Good luck
+* **App Store**: on the home screen, browse every app from the ads (all 105) on eleven shelves, each with its
+  app count, or search them. Good luck
   downloading any of them.
 * **Affection and babies**: dates fill a piece's affection meter, and so does watching a friend
   nearby capture an enemy (it gets a crush on the hero). A piece with a full heart may have a **baby
